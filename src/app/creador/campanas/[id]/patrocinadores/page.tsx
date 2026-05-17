@@ -1,11 +1,10 @@
-import { PagePlaceholder } from '@/components/layout/page-placeholder'
+import { BackersList } from '@/components/creator/backers/backers-list'
 
-export default async function CampaignBackersPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CampaignBackersPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
   const { id } = await params
-  return (
-    <PagePlaceholder
-      title="Patrocinadores"
-      description={`Lista de quien apoyó la campaña ${id} (respetando los pledges anónimos).`}
-    />
-  )
+  return <BackersList campaignId={id} />
 }

@@ -1,10 +1,5 @@
-import { PagePlaceholder } from '@/components/layout/page-placeholder'
+import { WithdrawalsPage } from '@/components/creator/withdrawals/withdrawals-page'
 
-export default function WithdrawalsPage() {
-  return (
-    <PagePlaceholder
-      title="Retiros"
-      description="Historial de retiros y solicitud de uno nuevo. La UI muestra la comisión del 5% y el límite diario para creadores nuevos."
-    />
-  )
+export default function CreatorWithdrawalsPage() {
+  return <WithdrawalsPage />
 }
