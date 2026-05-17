@@ -1,10 +1,5 @@
-import { PagePlaceholder } from '@/components/layout/page-placeholder'
+import { FraudReportsList } from '@/components/admin/fraud-reports-list'
 
 export default function FraudReportsPage() {
-  return (
-    <PagePlaceholder
-      title="Reportes de fraude"
-      description="Lista de reportes filtrable por estado (abiertos, en revisión, resueltos, descartados)."
-    />
-  )
+  return <FraudReportsList />
 }

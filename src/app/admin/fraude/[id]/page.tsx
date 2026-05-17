@@ -1,4 +1,4 @@
-import { PagePlaceholder } from '@/components/layout/page-placeholder'
+import { FraudReportDetail } from '@/components/admin/fraud-report-detail'
 
 export default async function FraudReportDetailPage({
   params,
@@ -6,10 +6,5 @@ export default async function FraudReportDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  return (
-    <PagePlaceholder
-      title="Detalle del reporte"
-      description={`Detalle y resolución del reporte de fraude ${id}.`}
-    />
-  )
+  return <FraudReportDetail reportId={id} />
 }
