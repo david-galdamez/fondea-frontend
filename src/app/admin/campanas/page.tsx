@@ -1,10 +1,5 @@
-import { PagePlaceholder } from '@/components/layout/page-placeholder'
+import { AllCampaigns } from '@/components/admin/all-campaigns'
 
 export default function AdminCampaignsPage() {
-  return (
-    <PagePlaceholder
-      title="Todas las campañas"
-      description="Listado completo con filtros por estado y toggle de campañas destacadas."
-    />
-  )
+  return <AllCampaigns />
 }

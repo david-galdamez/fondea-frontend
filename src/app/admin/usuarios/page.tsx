@@ -1,10 +1,5 @@
-import { PagePlaceholder } from '@/components/layout/page-placeholder'
+import { UsersList } from '@/components/admin/users-list'
 
 export default function AdminUsersPage() {
-  return (
-    <PagePlaceholder
-      title="Usuarios"
-      description="Listado básico de usuarios (solo lectura en el MVP)."
-    />
-  )
+  return <UsersList />
 }

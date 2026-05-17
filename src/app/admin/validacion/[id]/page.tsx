@@ -1,4 +1,4 @@
-import { PagePlaceholder } from '@/components/layout/page-placeholder'
+import { ValidationDetail } from '@/components/admin/validation-detail'
 
 export default async function ValidationDetailPage({
   params,
@@ -6,10 +6,5 @@ export default async function ValidationDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  return (
-    <PagePlaceholder
-      title="Revisar campaña"
-      description={`Vista de revisión de la campaña ${id} con acciones de aprobar, rechazar (con motivo) y marcar destacada.`}
-    />
-  )
+  return <ValidationDetail campaignId={id} />
 }
