@@ -1,10 +1,5 @@
-import { PagePlaceholder } from '@/components/layout/page-placeholder'
+import { CreatorDashboard } from '@/components/creator/creator-dashboard'
 
 export default function CreatorHomePage() {
-  return (
-    <PagePlaceholder
-      title="Panel del creador"
-      description="Resumen: campañas activas, fondos disponibles, próximas fechas de cierre."
-    />
-  )
+  return <CreatorDashboard />
 }

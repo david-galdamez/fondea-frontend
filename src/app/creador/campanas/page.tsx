@@ -1,10 +1,5 @@
-import { PagePlaceholder } from '@/components/layout/page-placeholder'
+import { CreatorCampaignsList } from '@/components/creator/creator-campaigns-list'
 
 export default function CreatorCampaignsPage() {
-  return (
-    <PagePlaceholder
-      title="Mis campañas"
-      description="Lista de las campañas del creador con su estado."
-    />
-  )
+  return <CreatorCampaignsList />
 }
