@@ -1,8 +1,9 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import type { Role } from '@/types'
+import { notificationsService } from '@/lib/api'
 import { getPrimaryPath, ROLE_LABEL } from '@/lib/auth-routing'
 import { useSession } from '@/components/providers/session-provider'
 import { AuthenticatedNavbar } from './authenticated-navbar'
@@ -10,18 +11,15 @@ import { AuthenticatedNavbar } from './authenticated-navbar'
 interface AuthenticatedShellProps {
   requiredRole?: Role
   sidebar?: React.ReactNode
-  unreadCount?: number
   children: React.ReactNode
 }
 
-export function AuthenticatedShell({
-  requiredRole,
-  sidebar,
-  unreadCount,
-  children,
-}: AuthenticatedShellProps) {
+export function AuthenticatedShell({ requiredRole, sidebar, children }: AuthenticatedShellProps) {
   const { session, isLoading, signOut } = useSession()
   const router = useRouter()
+  const pathname = usePathname()
+  const userId = session?.user.id
+  const [unreadCount, setUnreadCount] = useState<number>(0)
 
   useEffect(() => {
     if (isLoading) return
@@ -33,6 +31,22 @@ export function AuthenticatedShell({
       router.replace(getPrimaryPath(session.user))
     }
   }, [isLoading, session, requiredRole, router])
+
+  useEffect(() => {
+    if (!userId) return
+    let cancelled = false
+    notificationsService
+      .countUnread(userId)
+      .then((count) => {
+        if (!cancelled) setUnreadCount(count)
+      })
+      .catch(() => {
+        if (!cancelled) setUnreadCount(0)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [userId, pathname])
 
   async function handleLogout() {
     await signOut()

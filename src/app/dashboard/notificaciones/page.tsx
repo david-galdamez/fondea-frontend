@@ -1,10 +1,5 @@
-import { PagePlaceholder } from '@/components/layout/page-placeholder'
+import { NotificationsList } from '@/components/notifications/notifications-list'
 
 export default function NotificacionesPage() {
-  return (
-    <PagePlaceholder
-      title="Notificaciones"
-      description="Centro de notificaciones: campañas cerca de meta, cobros, reembolsos y updates."
-    />
-  )
+  return <NotificationsList />
 }
