@@ -1,4 +1,4 @@
-import { PagePlaceholder } from '@/components/layout/page-placeholder'
+import { PledgeFlow } from '@/components/pledges/pledge-flow'
 
 export default async function SupportCampaignPage({
   params,
@@ -6,12 +6,5 @@ export default async function SupportCampaignPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  return (
-    <div className="mx-auto max-w-2xl px-4">
-      <PagePlaceholder
-        title="Apoyar campaña"
-        description={`Flujo de pledge para "${slug}" — elegir recompensa, confirmar monto y completar la promesa.`}
-      />
-    </div>
-  )
+  return <PledgeFlow slug={slug} />
 }

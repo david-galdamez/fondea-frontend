@@ -1,10 +1,5 @@
-import { PagePlaceholder } from '@/components/layout/page-placeholder'
+import { CertificatesList } from '@/components/certificates/certificates-list'
 
 export default function CertificadosPage() {
-  return (
-    <PagePlaceholder
-      title="Certificados de donación"
-      description="Lista de certificados por año fiscal con descarga (stub)."
-    />
-  )
+  return <CertificatesList />
 }

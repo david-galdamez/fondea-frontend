@@ -1,10 +1,5 @@
-import { PagePlaceholder } from '@/components/layout/page-placeholder'
+import { PledgesList } from '@/components/pledges/pledges-list'
 
 export default function PledgesPage() {
-  return (
-    <PagePlaceholder
-      title="Mis promesas"
-      description="Lista de pledges con estado (autorizado, cobrado, reembolsado)."
-    />
-  )
+  return <PledgesList />
 }
