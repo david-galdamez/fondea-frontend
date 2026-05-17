@@ -1,13 +1,33 @@
-import { PagePlaceholder } from '@/components/layout/page-placeholder'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import { ChevronLeft } from 'lucide-react'
+import { categoriesService, NotFoundError } from '@/lib/api'
+import { CategoryCampaigns } from '@/components/campaigns/category-campaigns'
 
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
+
+  const category = await categoriesService.getBySlug(slug).catch((err) => {
+    if (err instanceof NotFoundError) notFound()
+    throw err
+  })
+
   return (
-    <div className="mx-auto max-w-6xl px-4">
-      <PagePlaceholder
-        title={`Categoría: ${slug}`}
-        description="Listado pre-filtrado por categoría."
-      />
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
+      <Link
+        href="/explorar"
+        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"
+      >
+        <ChevronLeft className="size-4" />
+        Volver a explorar
+      </Link>
+      <header className="flex flex-col gap-1">
+        <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+          Categoría
+        </p>
+        <h1 className="text-3xl font-semibold tracking-tight">{category.name}</h1>
+      </header>
+      <CategoryCampaigns categoryId={category.id} />
     </div>
   )
 }

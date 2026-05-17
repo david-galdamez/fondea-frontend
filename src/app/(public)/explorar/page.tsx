@@ -1,12 +1,10 @@
-import { PagePlaceholder } from '@/components/layout/page-placeholder'
+import { Suspense } from 'react'
+import { ExploreClient } from '@/components/campaigns/explore-client'
 
 export default function ExplorarPage() {
   return (
-    <div className="mx-auto max-w-6xl px-4">
-      <PagePlaceholder
-        title="Explorar campañas"
-        description="Listado con filtros (categoría, ubicación, estado, ordenamiento) y paginación."
-      />
-    </div>
+    <Suspense fallback={null}>
+      <ExploreClient />
+    </Suspense>
   )
 }
