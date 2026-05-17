@@ -86,20 +86,6 @@ export const authService = {
     return { ...raw, user: fresh }
   },
 
-  async switchRole(role: Role): Promise<Session> {
-    await simulateNetwork()
-    const current = readSessionRaw<Session>()
-    if (!current) throw new UnauthorizedError()
-    const user = usersStore.findById(current.user.id)
-    if (!user) throw new NotFoundError('Usuario')
-    if (!user.roles.includes(role)) {
-      throw new ValidationError(`El usuario no tiene el rol "${role}"`)
-    }
-    const session: Session = { ...current, user }
-    writeSessionRaw(session)
-    return session
-  },
-
   async addRole(role: Role): Promise<User> {
     await simulateNetwork()
     const current = readSessionRaw<Session>()

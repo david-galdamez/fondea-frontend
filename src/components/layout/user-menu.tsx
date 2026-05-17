@@ -1,7 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { LayoutDashboard, LogOut, ShieldCheck, Megaphone, UserCog } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { Check, LayoutDashboard, LogOut, Megaphone, ShieldCheck, UserCog } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import type { Role, User } from '@/types'
 import { Button } from '@/components/ui/button'
 import {
@@ -10,34 +12,36 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { ROLE_HOME, ROLE_LABEL } from '@/lib/auth-routing'
 import { UserAvatar } from './user-avatar'
 
 interface UserMenuProps {
   user: User
-  activeRole: Role
-  onSwitchRole?: (role: Role) => void
   onLogout?: () => void
 }
 
-const ROLE_LABEL: Record<Role, string> = {
-  admin: 'Administrador',
-  creator: 'Creador',
-  backer: 'Patrocinador',
+const ROLE_ICON: Record<Role, LucideIcon> = {
+  admin: ShieldCheck,
+  creator: Megaphone,
+  backer: LayoutDashboard,
 }
 
-const ROLE_HOME: Record<Role, string> = {
-  admin: '/admin',
-  creator: '/creador',
-  backer: '/dashboard',
+const ROLE_ORDER: Role[] = ['admin', 'creator', 'backer']
+
+function activeRoleFromPath(pathname: string): Role | null {
+  if (pathname.startsWith('/admin')) return 'admin'
+  if (pathname.startsWith('/creador')) return 'creator'
+  if (pathname.startsWith('/dashboard')) return 'backer'
+  return null
 }
 
-export function UserMenu({ user, activeRole, onSwitchRole, onLogout }: UserMenuProps) {
-  const canSwitch = user.roles.length > 1
+export function UserMenu({ user, onLogout }: UserMenuProps) {
+  const pathname = usePathname()
+  const activeRole = activeRoleFromPath(pathname)
+  const sortedRoles = ROLE_ORDER.filter((r) => user.roles.includes(r))
 
   return (
     <DropdownMenu>
@@ -48,7 +52,7 @@ export function UserMenu({ user, activeRole, onSwitchRole, onLogout }: UserMenuP
           </Button>
         }
       />
-      <DropdownMenuContent align="end" className="min-w-56">
+      <DropdownMenuContent align="end" className="min-w-60">
         <div className="flex items-center gap-2 px-1.5 py-1.5">
           <UserAvatar user={user} size="md" />
           <div className="flex min-w-0 flex-col">
@@ -58,36 +62,30 @@ export function UserMenu({ user, activeRole, onSwitchRole, onLogout }: UserMenuP
         </div>
         <DropdownMenuSeparator />
 
-        {canSwitch && (
+        {sortedRoles.length > 0 && (
           <>
-            <DropdownMenuLabel>Rol activo</DropdownMenuLabel>
-            <DropdownMenuRadioGroup
-              value={activeRole}
-              onValueChange={(value) => onSwitchRole?.(value as Role)}
-            >
-              {user.roles.map((role) => (
-                <DropdownMenuRadioItem key={role} value={role}>
-                  {role === 'admin' && <ShieldCheck className="size-4" />}
-                  {role === 'creator' && <Megaphone className="size-4" />}
-                  {role === 'backer' && <LayoutDashboard className="size-4" />}
-                  {ROLE_LABEL[role]}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
+            <DropdownMenuLabel>Mis paneles</DropdownMenuLabel>
+            <DropdownMenuGroup>
+              {sortedRoles.map((role) => {
+                const Icon = ROLE_ICON[role]
+                const isActive = activeRole === role
+                return (
+                  <DropdownMenuItem key={role} render={<Link href={ROLE_HOME[role]} />}>
+                    <Icon className="size-4" />
+                    <span className="flex-1">Panel de {ROLE_LABEL[role].toLowerCase()}</span>
+                    {isActive && <Check className="text-muted-foreground size-3.5" />}
+                  </DropdownMenuItem>
+                )
+              })}
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
           </>
         )}
 
-        <DropdownMenuGroup>
-          <DropdownMenuItem render={<Link href={ROLE_HOME[activeRole]} />}>
-            <LayoutDashboard className="size-4" />
-            Ir a mi panel
-          </DropdownMenuItem>
-          <DropdownMenuItem render={<Link href="/perfil" />}>
-            <UserCog className="size-4" />
-            Editar perfil
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
+        <DropdownMenuItem render={<Link href="/perfil" />}>
+          <UserCog className="size-4" />
+          Editar perfil
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={onLogout}>
           <LogOut className="size-4" />

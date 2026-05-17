@@ -41,6 +41,9 @@ export const pledgesService = {
     await simulateNetwork()
     const campaign = campaignsStore.findById(input.campaignId)
     if (!campaign) throw new NotFoundError('Campaña')
+    if (campaign.creatorId === backerId) {
+      throw new ForbiddenError('No puedes apoyar tu propia campaña')
+    }
     if (campaign.status !== 'active') {
       throw new ForbiddenError('Solo puedes apoyar campañas activas')
     }

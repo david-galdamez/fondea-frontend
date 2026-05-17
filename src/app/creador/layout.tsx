@@ -3,7 +3,7 @@ import { CreatorSidebar } from '@/components/layout/creator-sidebar'
 
 export default function CreatorLayout({ children }: { children: React.ReactNode }) {
   return (
-    <AuthenticatedShell activeRole="creator" sidebar={<CreatorSidebar />}>
+    <AuthenticatedShell requiredRole="creator" sidebar={<CreatorSidebar />}>
       {children}
     </AuthenticatedShell>
   )
