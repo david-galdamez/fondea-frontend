@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Search } from 'lucide-react'
 import type { User } from '@/types'
+import { getPrimaryPath } from '@/lib/auth-routing'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Logo } from './logo'
@@ -31,7 +32,7 @@ export function AuthenticatedNavbar({ user, unreadCount, onLogout }: Authenticat
   return (
     <header className="border-border bg-background/80 sticky top-0 z-40 w-full border-b backdrop-blur">
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4">
-        <Logo />
+        <Logo href={getPrimaryPath(user)} />
 
         <form
           onSubmit={handleSearch}
