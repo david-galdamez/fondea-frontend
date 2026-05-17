@@ -1,10 +1,5 @@
-import { PagePlaceholder } from '@/components/layout/page-placeholder'
+import { AdminDashboard } from '@/components/admin/admin-dashboard'
 
 export default function AdminHomePage() {
-  return (
-    <PagePlaceholder
-      title="Panel de administración"
-      description="Resumen: pendientes de revisión, reportes abiertos, comisiones acumuladas."
-    />
-  )
+  return <AdminDashboard />
 }
