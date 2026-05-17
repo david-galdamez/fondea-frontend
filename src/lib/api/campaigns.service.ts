@@ -10,7 +10,7 @@ import { DEFAULT_PAGE_SIZE, NEAR_GOAL_THRESHOLD } from '@/lib/constants'
 import { progressRatio, zeroMoney } from '@/lib/money'
 import { generateId, nowISO, paginate, simulateNetwork } from './client'
 import { ForbiddenError, NotFoundError, ValidationError } from './errors'
-import { campaignsStore } from './_stores'
+import { campaignsStore, usersStore } from './_stores'
 
 function toSummary(campaign: Campaign): CampaignSummary {
   return {
@@ -126,11 +126,22 @@ export const campaignsService = {
 
   async create(creatorId: ID, draft: CampaignDraft): Promise<Campaign> {
     await simulateNetwork()
+    const creator = usersStore.findById(creatorId)
+    if (!creator) throw new NotFoundError('Usuario')
+    if (creator.roles.includes('admin')) {
+      throw new ForbiddenError('Los administradores no pueden crear campañas')
+    }
     if (!draft.title.trim()) {
       throw new ValidationError('El título es obligatorio', { title: 'Requerido' })
     }
     if (draft.goal.amount <= 0) {
       throw new ValidationError('La meta debe ser mayor a cero', { goal: 'Inválida' })
+    }
+    if (!creator.roles.includes('creator')) {
+      usersStore.update(creatorId, {
+        roles: [...creator.roles, 'creator'],
+        isNewCreator: true,
+      })
     }
     const created: Campaign = {
       ...draft,
