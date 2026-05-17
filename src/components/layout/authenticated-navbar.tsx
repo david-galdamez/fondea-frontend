@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Search } from 'lucide-react'
-import type { Role, User } from '@/types'
+import type { User } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Logo } from './logo'
@@ -13,19 +13,11 @@ import { UserMenu } from './user-menu'
 
 interface AuthenticatedNavbarProps {
   user: User
-  activeRole: Role
   unreadCount?: number
-  onSwitchRole?: (role: Role) => void
   onLogout?: () => void
 }
 
-export function AuthenticatedNavbar({
-  user,
-  activeRole,
-  unreadCount,
-  onSwitchRole,
-  onLogout,
-}: AuthenticatedNavbarProps) {
+export function AuthenticatedNavbar({ user, unreadCount, onLogout }: AuthenticatedNavbarProps) {
   const router = useRouter()
 
   function handleSearch(event: React.FormEvent<HTMLFormElement>) {
@@ -68,12 +60,7 @@ export function AuthenticatedNavbar({
           </Button>
           <NotificationBell unreadCount={unreadCount} />
           <ThemeToggle />
-          <UserMenu
-            user={user}
-            activeRole={activeRole}
-            onSwitchRole={onSwitchRole}
-            onLogout={onLogout}
-          />
+          <UserMenu user={user} onLogout={onLogout} />
         </div>
       </div>
     </header>
