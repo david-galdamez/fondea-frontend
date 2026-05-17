@@ -18,6 +18,7 @@ import { useSession } from '@/components/providers/session-provider'
 import { Button } from '@/components/ui/button'
 import { ErrorState } from '@/components/common/error-state'
 import { MoneyDisplay } from '@/components/common/money-display'
+import { PageSkeleton } from '@/components/common/page-skeleton'
 import { PledgeStatusBadge } from './pledge-status-badge'
 
 interface PledgeDetailProps {
@@ -90,7 +91,7 @@ export function PledgeDetail({ id }: PledgeDetailProps) {
   }
 
   if (loading) {
-    return <p className="text-muted-foreground py-6 text-sm">Cargando…</p>
+    return <PageSkeleton variant="detail" />
   }
 
   if (error instanceof NotFoundError) {

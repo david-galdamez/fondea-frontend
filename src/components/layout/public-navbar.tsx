@@ -31,18 +31,18 @@ export function PublicNavbar({ categories = [] }: PublicNavbarProps) {
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
         <Logo />
 
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="hidden items-center gap-1 md:flex" aria-label="Principal">
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
             const active = pathname.startsWith(href)
             return (
               <Button
                 key={href}
-                render={<Link href={href} />}
+                render={<Link href={href} aria-current={active ? 'page' : undefined} />}
                 variant="ghost"
                 size="sm"
                 className={cn(active && 'bg-muted text-foreground')}
               >
-                <Icon className="size-4" />
+                <Icon className="size-4" aria-hidden="true" />
                 {label}
               </Button>
             )
@@ -78,7 +78,7 @@ export function PublicNavbar({ categories = [] }: PublicNavbarProps) {
             size="sm"
             className="hidden sm:inline-flex"
           >
-            <Sparkles className="size-4" />
+            <Sparkles className="size-4" aria-hidden="true" />
             Iniciar campaña
           </Button>
           <ThemeToggle />

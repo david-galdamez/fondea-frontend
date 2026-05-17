@@ -55,15 +55,23 @@ export function AuthenticatedShell({ requiredRole, sidebar, children }: Authenti
 
   if (isLoading || !session) {
     return (
-      <div className="flex flex-1 items-center justify-center px-4 py-16">
-        <p className="text-muted-foreground text-sm">Cargando…</p>
+      <div
+        className="flex flex-1 items-center justify-center px-4 py-16"
+        role="status"
+        aria-live="polite"
+      >
+        <span className="sr-only">Cargando tu sesión…</span>
+        <span
+          aria-hidden="true"
+          className="border-muted-foreground/30 border-t-foreground size-6 animate-spin rounded-full border-2"
+        />
       </div>
     )
   }
 
   if (requiredRole && !session.user.roles.includes(requiredRole)) {
     return (
-      <div className="flex flex-1 items-center justify-center px-4 py-16">
+      <div className="flex flex-1 items-center justify-center px-4 py-16" role="alert">
         <p className="text-muted-foreground text-sm">
           Necesitas el rol de {ROLE_LABEL[requiredRole]} para acceder a esta área.
         </p>
@@ -76,7 +84,9 @@ export function AuthenticatedShell({ requiredRole, sidebar, children }: Authenti
       <AuthenticatedNavbar user={session.user} unreadCount={unreadCount} onLogout={handleLogout} />
       <div className="mx-auto flex w-full max-w-7xl flex-1 gap-6 px-4">
         {sidebar}
-        <main className="flex-1 py-6">{children}</main>
+        <main id="main-content" tabIndex={-1} className="flex-1 py-6">
+          {children}
+        </main>
       </div>
     </div>
   )

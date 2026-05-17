@@ -9,6 +9,7 @@ import { useSession } from '@/components/providers/session-provider'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
+import { RowsSkeleton } from '@/components/common/page-skeleton'
 import { NotificationItem } from './notification-item'
 
 export function NotificationsList() {
@@ -99,7 +100,7 @@ export function NotificationsList() {
       {error ? (
         <ErrorState onRetry={handleRetry} />
       ) : loading || !items ? (
-        <p className="text-muted-foreground text-sm">Cargando…</p>
+        <RowsSkeleton count={5} rowHeight="h-14" />
       ) : items.length === 0 ? (
         <EmptyState
           icon={Bell}

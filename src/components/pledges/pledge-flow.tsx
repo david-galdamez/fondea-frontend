@@ -22,6 +22,7 @@ import { CampaignProgress } from '@/components/campaigns/campaign-progress'
 import { CountdownTimer } from '@/components/campaigns/countdown-timer'
 import { ErrorState } from '@/components/common/error-state'
 import { MoneyDisplay } from '@/components/common/money-display'
+import { PageSkeleton } from '@/components/common/page-skeleton'
 
 interface PledgeFlowProps {
   slug: string
@@ -144,8 +145,8 @@ export function PledgeFlow({ slug }: PledgeFlowProps) {
 
   if (sessionLoading || !session || loading) {
     return (
-      <div className="mx-auto flex max-w-2xl items-center justify-center px-4 py-16">
-        <p className="text-muted-foreground text-sm">Cargando…</p>
+      <div className="mx-auto max-w-2xl px-4 py-10">
+        <PageSkeleton variant="form" />
       </div>
     )
   }

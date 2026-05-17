@@ -15,6 +15,7 @@ import { useSession } from '@/components/providers/session-provider'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/common/empty-state'
 import { MoneyDisplay } from '@/components/common/money-display'
+import { PageSkeleton } from '@/components/common/page-skeleton'
 import { NotificationItem } from '@/components/notifications/notification-item'
 import { PledgeListItem } from './pledge-list-item'
 
@@ -89,7 +90,7 @@ export function DashboardSummary() {
   }, [userId])
 
   if (loading || !data) {
-    return <p className="text-muted-foreground py-6 text-sm">Cargando…</p>
+    return <PageSkeleton variant="summary" />
   }
 
   return (

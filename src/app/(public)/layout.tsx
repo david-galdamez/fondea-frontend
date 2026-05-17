@@ -8,7 +8,9 @@ export default async function PublicLayout({ children }: { children: React.React
   return (
     <div className="flex min-h-full flex-1 flex-col">
       <PublicNavbar categories={categories.map((c) => ({ slug: c.slug, name: c.name }))} />
-      <main className="flex-1">{children}</main>
+      <main id="main-content" tabIndex={-1} className="flex-1">
+        {children}
+      </main>
       <Footer />
     </div>
   )

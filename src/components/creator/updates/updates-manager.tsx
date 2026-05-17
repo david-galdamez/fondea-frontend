@@ -10,6 +10,7 @@ import { formatLongDate } from '@/lib/dates'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
+import { PageSkeleton } from '@/components/common/page-skeleton'
 
 interface UpdatesManagerProps {
   campaignId: string
@@ -29,10 +30,7 @@ export function UpdatesManager({ campaignId }: UpdatesManagerProps) {
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([
-      campaignsService.getById(campaignId),
-      updatesService.listByCampaign(campaignId),
-    ])
+    Promise.all([campaignsService.getById(campaignId), updatesService.listByCampaign(campaignId)])
       .then(([campaign, updates]) => {
         if (cancelled) return
         setData({ campaign, updates })
@@ -65,7 +63,7 @@ export function UpdatesManager({ campaignId }: UpdatesManagerProps) {
   }
 
   if (error) return <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
-  if (loading || !data) return <p className="text-muted-foreground py-6 text-sm">Cargando…</p>
+  if (loading || !data) return <PageSkeleton variant="list" />
 
   return (
     <div className="flex flex-col gap-6">
@@ -105,7 +103,10 @@ export function UpdatesManager({ campaignId }: UpdatesManagerProps) {
       ) : (
         <div className="flex flex-col gap-3">
           {data.updates.map((u) => (
-            <article key={u.id} className="border-border bg-card flex flex-col gap-2 rounded-lg border p-4">
+            <article
+              key={u.id}
+              className="border-border bg-card flex flex-col gap-2 rounded-lg border p-4"
+            >
               <header className="flex flex-wrap items-start justify-between gap-2">
                 <div className="flex flex-col gap-0.5">
                   <h3 className="text-sm font-semibold">{u.title}</h3>

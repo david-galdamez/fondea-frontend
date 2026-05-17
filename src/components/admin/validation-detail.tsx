@@ -26,6 +26,7 @@ import { StatusBadge } from '@/components/campaigns/status-badge'
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
 import { MoneyDisplay } from '@/components/common/money-display'
+import { PageSkeleton } from '@/components/common/page-skeleton'
 
 interface ValidationDetailProps {
   campaignId: string
@@ -127,7 +128,7 @@ export function ValidationDetail({ campaignId }: ValidationDetailProps) {
   }
 
   if (error) return <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
-  if (loading || !data) return <p className="text-muted-foreground py-6 text-sm">Cargando…</p>
+  if (loading || !data) return <PageSkeleton variant="detail" />
 
   const { campaign, creator, category, rewards, faqs } = data
   const isPending = campaign.status === 'pending_review'
@@ -146,7 +147,11 @@ export function ValidationDetail({ campaignId }: ValidationDetailProps) {
         {campaign.coverImageUrl && (
           <div className="bg-muted aspect-[16/9] w-full overflow-hidden rounded-lg">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={campaign.coverImageUrl} alt="" className="h-full w-full object-cover" />
+            <img
+              src={campaign.coverImageUrl}
+              alt={`Portada de ${campaign.title}`}
+              className="h-full w-full object-cover"
+            />
           </div>
         )}
         <div className="flex flex-wrap items-center gap-2">
@@ -193,9 +198,14 @@ export function ValidationDetail({ campaignId }: ValidationDetailProps) {
               <h2 className="text-lg font-semibold">Preguntas frecuentes ({faqs.length})</h2>
               <dl className="flex flex-col gap-3">
                 {faqs.map((f) => (
-                  <div key={f.id} className="border-border bg-card flex flex-col gap-1 rounded-lg border p-4">
+                  <div
+                    key={f.id}
+                    className="border-border bg-card flex flex-col gap-1 rounded-lg border p-4"
+                  >
                     <dt className="font-medium">{f.question}</dt>
-                    <dd className="text-muted-foreground text-sm whitespace-pre-wrap">{f.answer}</dd>
+                    <dd className="text-muted-foreground text-sm whitespace-pre-wrap">
+                      {f.answer}
+                    </dd>
                   </div>
                 ))}
               </dl>
@@ -227,7 +237,7 @@ export function ValidationDetail({ campaignId }: ValidationDetailProps) {
           </div>
 
           {campaign.rejectionReason && (
-            <div className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200 rounded-lg border p-3 text-sm">
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
               <p className="font-medium">Motivo de rechazo previo</p>
               <p>{campaign.rejectionReason}</p>
             </div>

@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label'
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
 import { MoneyDisplay } from '@/components/common/money-display'
+import { PageSkeleton } from '@/components/common/page-skeleton'
 
 interface Data {
   campaigns: Campaign[]
@@ -127,7 +128,7 @@ export function WithdrawalsPage() {
   }
 
   if (error) return <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
-  if (loading || !data) return <p className="text-muted-foreground py-6 text-sm">Cargando…</p>
+  if (loading || !data) return <PageSkeleton variant="summary" />
 
   const remainingToday = money(
     Math.max(0, data.limits.dailyMax.amount - data.limits.usedToday.amount)
@@ -143,7 +144,7 @@ export function WithdrawalsPage() {
       </header>
 
       {data.limits.isNewCreator && (
-        <aside className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200 flex flex-col gap-1 rounded-lg border p-4 text-sm">
+        <aside className="flex flex-col gap-1 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
           <div className="flex items-center gap-2 font-medium">
             <AlertTriangle className="size-4" aria-hidden="true" />
             Límite diario para nuevos creadores
@@ -173,7 +174,7 @@ export function WithdrawalsPage() {
               <Label htmlFor="campaign">Campaña</Label>
               <select
                 id="campaign"
-                className="border-input bg-background h-8 w-full rounded-lg border px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-8 w-full rounded-lg border px-2.5 text-sm outline-none focus-visible:ring-3"
                 value={selectedCampaignId}
                 onChange={(e) => setSelectedCampaignId(e.target.value)}
               >
@@ -275,7 +276,10 @@ export function WithdrawalsPage() {
                       {STATUS_LABEL[w.status]}
                     </span>
                   </div>
-                  <ChevronRight className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
+                  <ChevronRight
+                    className="text-muted-foreground size-4 shrink-0"
+                    aria-hidden="true"
+                  />
                 </div>
               )
             })}

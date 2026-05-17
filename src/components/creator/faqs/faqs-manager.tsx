@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
+import { PageSkeleton } from '@/components/common/page-skeleton'
 
 interface FAQDraft {
   question: string
@@ -76,7 +77,7 @@ export function FAQsManager({ campaignId }: FAQsManagerProps) {
   }
 
   if (error) return <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
-  if (loading || !campaign) return <p className="text-muted-foreground py-6 text-sm">Cargando…</p>
+  if (loading || !campaign) return <PageSkeleton variant="list" />
 
   return (
     <div className="flex flex-col gap-6">

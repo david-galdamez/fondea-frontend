@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import type { Campaign, FAQ, Reward } from '@/types'
 import { campaignsService, faqsService, rewardsService } from '@/lib/api'
 import { ErrorState } from '@/components/common/error-state'
+import { PageSkeleton } from '@/components/common/page-skeleton'
 import { CampaignWizard } from './wizard/campaign-wizard'
 
 interface EditCampaignClientProps {
@@ -50,7 +51,7 @@ export function EditCampaignClient({ campaignId }: EditCampaignClientProps) {
   }, [campaignId, retryKey])
 
   if (error) return <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
-  if (loading || !data) return <p className="text-muted-foreground py-6 text-sm">Cargando…</p>
+  if (loading || !data) return <PageSkeleton variant="form" />
 
   return <CampaignWizard initial={data} initialStep={stepParam} />
 }

@@ -11,6 +11,7 @@ import { formatLongDate } from '@/lib/dates'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { ErrorState } from '@/components/common/error-state'
+import { PageSkeleton } from '@/components/common/page-skeleton'
 
 interface FraudReportDetailProps {
   reportId: string
@@ -92,7 +93,7 @@ export function FraudReportDetail({ reportId }: FraudReportDetailProps) {
   }
 
   if (error) return <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
-  if (loading || !data) return <p className="text-muted-foreground py-6 text-sm">Cargando…</p>
+  if (loading || !data) return <PageSkeleton variant="detail" />
 
   const { report, campaign, reporter } = data
   const isOpen = report.status === 'open' || report.status === 'reviewing'
@@ -144,7 +145,7 @@ export function FraudReportDetail({ reportId }: FraudReportDetailProps) {
                 value={reporter ? `${reporter.name} (${reporter.email})` : 'Usuario desconocido'}
               />
             </div>
-            <p className="text-foreground/90 whitespace-pre-wrap text-sm">{report.details}</p>
+            <p className="text-foreground/90 text-sm whitespace-pre-wrap">{report.details}</p>
           </section>
 
           {report.resolutionNotes && (

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
+import { RowsSkeleton } from '@/components/common/page-skeleton'
 import { CreatorCampaignCard } from './creator-campaign-card'
 
 const SELECT_CLASS =
@@ -99,15 +100,11 @@ export function CreatorCampaignsList() {
       {error ? (
         <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
       ) : loading || !campaigns ? (
-        <p className="text-muted-foreground text-sm">Cargando…</p>
+        <RowsSkeleton count={4} rowHeight="h-32" />
       ) : visible.length === 0 ? (
         <EmptyState
           icon={Megaphone}
-          title={
-            campaigns.length === 0
-              ? 'Aún no tienes campañas'
-              : 'Sin campañas con ese estado'
-          }
+          title={campaigns.length === 0 ? 'Aún no tienes campañas' : 'Sin campañas con ese estado'}
           description={
             campaigns.length === 0
               ? 'Comienza creando tu primera campaña para llevarla a revisión.'
