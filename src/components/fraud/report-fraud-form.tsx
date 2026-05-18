@@ -109,7 +109,7 @@ export function ReportFraudForm({ slug }: ReportFraudFormProps) {
     if (sessionLoading) return
     if (!userId) {
       toast.error('Inicia sesión para enviar un reporte')
-      router.push(`/auth/login?next=/campanas/${slug}/reportar`)
+      router.push(`/auth/login?redirect=${encodeURIComponent(`/campanas/${slug}/reportar`)}`)
       return
     }
 
