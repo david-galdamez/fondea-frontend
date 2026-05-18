@@ -20,6 +20,7 @@ export function AuthenticatedShell({ requiredRole, sidebar, children }: Authenti
   const pathname = usePathname()
   const userId = session?.user.id
   const [unreadCount, setUnreadCount] = useState<number>(0)
+  const [unreadKey, setUnreadKey] = useState(0)
 
   useEffect(() => {
     if (isLoading) return
@@ -46,7 +47,7 @@ export function AuthenticatedShell({ requiredRole, sidebar, children }: Authenti
     return () => {
       cancelled = true
     }
-  }, [userId, pathname])
+  }, [userId, pathname, unreadKey])
 
   async function handleLogout() {
     await signOut()
@@ -81,7 +82,12 @@ export function AuthenticatedShell({ requiredRole, sidebar, children }: Authenti
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <AuthenticatedNavbar user={session.user} unreadCount={unreadCount} onLogout={handleLogout} />
+      <AuthenticatedNavbar
+        user={session.user}
+        unreadCount={unreadCount}
+        onUnreadChange={() => setUnreadKey((k) => k + 1)}
+        onLogout={handleLogout}
+      />
       <div className="mx-auto flex w-full max-w-7xl flex-1 gap-6 px-4">
         {sidebar}
         <main id="main-content" tabIndex={-1} className="flex-1 py-6">

@@ -8,6 +8,7 @@ import type { Campaign, CampaignUpdate } from '@/types'
 import { ApiError, campaignsService, updatesService } from '@/lib/api'
 import { formatLongDate } from '@/lib/dates'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog, useConfirmDialog } from '@/components/common/confirm-dialog'
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
 import { PageSkeleton } from '@/components/common/page-skeleton'
@@ -26,7 +27,7 @@ export function UpdatesManager({ campaignId }: UpdatesManagerProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [retryKey, setRetryKey] = useState(0)
-  const [removingId, setRemovingId] = useState<string | null>(null)
+  const confirm = useConfirmDialog<string>()
 
   useEffect(() => {
     let cancelled = false
@@ -47,8 +48,7 @@ export function UpdatesManager({ campaignId }: UpdatesManagerProps) {
     }
   }, [campaignId, retryKey])
 
-  async function handleRemove(id: string) {
-    setRemovingId(id)
+  async function removeUpdate(id: string) {
     try {
       await updatesService.remove(id)
       setData((prev) =>
@@ -59,7 +59,6 @@ export function UpdatesManager({ campaignId }: UpdatesManagerProps) {
       const message = err instanceof ApiError ? err.message : 'No pudimos eliminarla'
       toast.error(message)
     }
-    setRemovingId(null)
   }
 
   if (error) return <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
@@ -119,11 +118,11 @@ export function UpdatesManager({ campaignId }: UpdatesManagerProps) {
                   type="button"
                   variant="ghost"
                   size="icon-sm"
-                  onClick={() => handleRemove(u.id)}
-                  disabled={removingId === u.id}
+                  onClick={() => confirm.ask(u.id)}
+                  disabled={confirm.confirming && confirm.target === u.id}
                   aria-label="Eliminar actualización"
                 >
-                  <Trash2 className="size-4" />
+                  <Trash2 className="size-4" aria-hidden="true" />
                 </Button>
               </header>
               <p className="text-muted-foreground line-clamp-3 text-sm whitespace-pre-wrap">
@@ -133,6 +132,18 @@ export function UpdatesManager({ campaignId }: UpdatesManagerProps) {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirm.open}
+        onOpenChange={(next) => (next ? null : confirm.close())}
+        title="¿Eliminar esta actualización?"
+        description="Los patrocinadores que ya la recibieron dejarán de verla. Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+        cancelLabel="Volver"
+        variant="destructive"
+        confirming={confirm.confirming}
+        onConfirm={() => confirm.run((id) => removeUpdate(id))}
+      />
     </div>
   )
 }

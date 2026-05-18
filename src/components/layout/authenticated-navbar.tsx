@@ -15,10 +15,16 @@ import { UserMenu } from './user-menu'
 interface AuthenticatedNavbarProps {
   user: User
   unreadCount?: number
+  onUnreadChange?: () => void
   onLogout?: () => void
 }
 
-export function AuthenticatedNavbar({ user, unreadCount, onLogout }: AuthenticatedNavbarProps) {
+export function AuthenticatedNavbar({
+  user,
+  unreadCount,
+  onUnreadChange,
+  onLogout,
+}: AuthenticatedNavbarProps) {
   const router = useRouter()
 
   function handleSearch(event: React.FormEvent<HTMLFormElement>) {
@@ -59,7 +65,7 @@ export function AuthenticatedNavbar({ user, unreadCount, onLogout }: Authenticat
           >
             <Search className="size-4" />
           </Button>
-          <NotificationBell unreadCount={unreadCount} />
+          <NotificationBell userId={user.id} unreadCount={unreadCount} onChange={onUnreadChange} />
           <ThemeToggle />
           <UserMenu user={user} onLogout={onLogout} />
         </div>

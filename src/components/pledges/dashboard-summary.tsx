@@ -2,8 +2,8 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { ArrowRight, Bell, HandHeart, ReceiptText } from 'lucide-react'
-import type { Campaign, Notification, Pledge } from '@/types'
+import { ArrowRight, Bell, HandHeart, ReceiptText, TrendingUp } from 'lucide-react'
+import type { Campaign, CampaignSummary, Notification, Pledge } from '@/types'
 import {
   campaignsService,
   certificatesService,
@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/common/empty-state'
 import { MoneyDisplay } from '@/components/common/money-display'
 import { PageSkeleton } from '@/components/common/page-skeleton'
+import { CampaignProgress } from '@/components/campaigns/campaign-progress'
 import { NotificationItem } from '@/components/notifications/notification-item'
 import { PledgeListItem } from './pledge-list-item'
 
@@ -29,6 +30,7 @@ interface SummaryData {
   recentPledges: Pledge[]
   recentNotifications: Notification[]
   campaignsById: Map<string, Campaign>
+  nearGoal: CampaignSummary[]
   stats: Stats
 }
 
@@ -45,10 +47,11 @@ export function DashboardSummary() {
     let cancelled = false
 
     async function load() {
-      const [allPledges, notifications, certificates] = await Promise.all([
+      const [allPledges, notifications, certificates, nearGoalAll] = await Promise.all([
         pledgesService.listByBacker(userId!, 1, 100),
         notificationsService.listForUser(userId!, { pageSize: 5 }),
         certificatesService.listForBacker(userId!),
+        campaignsService.getNearGoal(),
       ])
       const campaignIds = Array.from(new Set(allPledges.items.map((p) => p.campaignId)))
       const campaigns = await Promise.all(
@@ -61,10 +64,19 @@ export function DashboardSummary() {
       const totalAmount = allPledges.items
         .filter((p) => p.status !== 'cancelled' && p.status !== 'refunded')
         .reduce((acc, p) => addMoney(acc, p.amount), zeroMoney())
+
+      const supportedCampaignIds = new Set(
+        allPledges.items
+          .filter((p) => p.status !== 'cancelled' && p.status !== 'refunded')
+          .map((p) => p.campaignId)
+      )
+      const nearGoal = nearGoalAll.filter((c) => supportedCampaignIds.has(c.id))
+
       return {
         recentPledges: allPledges.items.slice(0, 4),
         recentNotifications: notifications.items,
         campaignsById,
+        nearGoal,
         stats: {
           totalPledges: allPledges.total,
           totalAmount,
@@ -103,6 +115,8 @@ export function DashboardSummary() {
           Aquí están las campañas que apoyas y tus notificaciones recientes.
         </p>
       </header>
+
+      {data.nearGoal.length > 0 && <NearGoalAlert campaigns={data.nearGoal} />}
 
       <section aria-label="Estadísticas" className="grid gap-3 sm:grid-cols-3">
         <StatCard
@@ -193,5 +207,53 @@ function StatCard({ icon: Icon, label, value }: StatCardProps) {
         <span className="text-lg font-semibold">{value}</span>
       </div>
     </div>
+  )
+}
+
+interface NearGoalAlertProps {
+  campaigns: CampaignSummary[]
+}
+
+function NearGoalAlert({ campaigns }: NearGoalAlertProps) {
+  return (
+    <section
+      aria-label="Campañas cerca de su meta"
+      className="border-primary/30 bg-primary/5 flex flex-col gap-3 rounded-lg border p-4"
+    >
+      <header className="flex items-center gap-2">
+        <span
+          aria-hidden="true"
+          className="bg-primary text-primary-foreground grid size-7 place-items-center rounded-full"
+        >
+          <TrendingUp className="size-4" />
+        </span>
+        <div className="flex min-w-0 flex-col">
+          <h2 className="text-sm font-semibold">
+            {campaigns.length === 1
+              ? 'Una campaña que apoyas está cerca de su meta'
+              : `${campaigns.length} campañas que apoyas están cerca de su meta`}
+          </h2>
+          <p className="text-muted-foreground text-xs">
+            Cuando alcancen el 100%, tu promesa se cobrará automáticamente.
+          </p>
+        </div>
+      </header>
+      <ul className="flex flex-col gap-2">
+        {campaigns.slice(0, 3).map((c) => (
+          <li key={c.id}>
+            <Link
+              href={`/campanas/${c.slug}`}
+              className="border-border bg-background hover:border-foreground/20 flex flex-col gap-2 rounded-md border p-3 transition-colors"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="line-clamp-1 text-sm font-medium">{c.title}</span>
+                <ArrowRight className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
+              </div>
+              <CampaignProgress raised={c.raised} goal={c.goal} backersCount={c.backersCount} />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }

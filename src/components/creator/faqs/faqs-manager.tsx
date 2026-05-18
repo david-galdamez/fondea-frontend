@@ -8,6 +8,7 @@ import { ApiError, campaignsService, faqsService } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { ConfirmDialog, useConfirmDialog } from '@/components/common/confirm-dialog'
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
 import { PageSkeleton } from '@/components/common/page-skeleton'
@@ -28,6 +29,7 @@ export function FAQsManager({ campaignId }: FAQsManagerProps) {
   const [error, setError] = useState(false)
   const [retryKey, setRetryKey] = useState(0)
   const [busy, setBusy] = useState(false)
+  const confirmRemove = useConfirmDialog<number>()
 
   useEffect(() => {
     let cancelled = false
@@ -59,6 +61,15 @@ export function FAQsManager({ campaignId }: FAQsManagerProps) {
 
   function removeAt(idx: number) {
     setDrafts((prev) => prev.filter((_, i) => i !== idx))
+  }
+
+  function requestRemove(idx: number) {
+    const draft = drafts[idx]
+    if (!draft || (!draft.question.trim() && !draft.answer.trim())) {
+      removeAt(idx)
+      return
+    }
+    confirmRemove.ask(idx)
   }
 
   async function handleSave() {
@@ -123,10 +134,10 @@ export function FAQsManager({ campaignId }: FAQsManagerProps) {
                   type="button"
                   variant="ghost"
                   size="icon-sm"
-                  onClick={() => removeAt(idx)}
+                  onClick={() => requestRemove(idx)}
                   aria-label="Eliminar pregunta"
                 >
-                  <Trash2 className="size-4" />
+                  <Trash2 className="size-4" aria-hidden="true" />
                 </Button>
               </div>
               <div className="flex flex-col gap-3">
@@ -153,6 +164,21 @@ export function FAQsManager({ campaignId }: FAQsManagerProps) {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmRemove.open}
+        onOpenChange={(next) => (next ? null : confirmRemove.close())}
+        title="¿Eliminar esta pregunta?"
+        description="Perderás el texto que escribiste. Recuerda que aún debes guardar los cambios para que se apliquen."
+        confirmLabel="Eliminar"
+        cancelLabel="Volver"
+        variant="destructive"
+        onConfirm={() =>
+          confirmRemove.run((idx) => {
+            removeAt(idx)
+          })
+        }
+      />
     </div>
   )
 }
