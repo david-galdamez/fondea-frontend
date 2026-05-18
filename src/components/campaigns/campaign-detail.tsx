@@ -131,7 +131,7 @@ export function CampaignDetail({ slug }: CampaignDetailProps) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={campaign.coverImageUrl}
-              alt=""
+              alt={`Portada de ${campaign.title}`}
               className="h-full w-full object-cover"
               loading="eager"
             />

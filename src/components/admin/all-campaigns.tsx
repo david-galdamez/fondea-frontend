@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
 import { MoneyDisplay } from '@/components/common/money-display'
+import { RowsSkeleton } from '@/components/common/page-skeleton'
 import { CampaignProgress } from '@/components/campaigns/campaign-progress'
 import { StatusBadge } from '@/components/campaigns/status-badge'
 
@@ -70,9 +71,7 @@ export function AllCampaigns() {
     setToggling(campaign.id)
     try {
       const updated = await adminService.setFeatured(campaign.id, !campaign.featured)
-      setCampaigns((prev) =>
-        prev ? prev.map((c) => (c.id === updated.id ? updated : c)) : prev
-      )
+      setCampaigns((prev) => (prev ? prev.map((c) => (c.id === updated.id ? updated : c)) : prev))
       toast.success(updated.featured ? 'Marcada como destacada' : 'Quitada de destacadas')
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'No pudimos actualizar la campaña'
@@ -121,7 +120,7 @@ export function AllCampaigns() {
       {error ? (
         <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
       ) : loading || !campaigns ? (
-        <p className="text-muted-foreground text-sm">Cargando…</p>
+        <RowsSkeleton count={4} rowHeight="h-24" />
       ) : visible.length === 0 ? (
         <EmptyState
           icon={Megaphone}

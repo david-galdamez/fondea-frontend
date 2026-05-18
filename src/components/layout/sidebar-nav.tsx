@@ -28,14 +28,17 @@ export function SidebarNav({ title, items, footer }: SidebarNavProps) {
   const pathname = usePathname()
 
   return (
-    <aside className="border-border bg-background hidden w-60 shrink-0 border-r md:flex md:flex-col">
+    <aside
+      aria-label={title ?? 'Navegación de sección'}
+      className="border-border bg-background hidden w-60 shrink-0 border-r md:flex md:flex-col"
+    >
       <div className="flex-1 overflow-y-auto p-3">
         {title && (
           <h2 className="text-muted-foreground mb-2 px-2 text-xs font-medium tracking-wide uppercase">
             {title}
           </h2>
         )}
-        <nav className="flex flex-col gap-0.5">
+        <nav className="flex flex-col gap-0.5" aria-label={title}>
           {items.map(({ href, label, icon: Icon, badge, exact }) => {
             const active = isActive(pathname, href, exact)
             return (
@@ -50,10 +53,13 @@ export function SidebarNav({ title, items, footer }: SidebarNavProps) {
                     : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
                 )}
               >
-                <Icon className="size-4" />
+                <Icon className="size-4" aria-hidden="true" />
                 <span className="flex-1 truncate">{label}</span>
                 {badge !== undefined && badge !== 0 && (
-                  <span className="bg-primary text-primary-foreground inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] leading-none font-medium">
+                  <span
+                    aria-label={`${badge} pendientes`}
+                    className="bg-primary text-primary-foreground inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] leading-none font-medium"
+                  >
                     {badge}
                   </span>
                 )}

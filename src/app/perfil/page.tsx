@@ -1,10 +1,5 @@
-import { PagePlaceholder } from '@/components/layout/page-placeholder'
+import { ProfileForm } from '@/components/profile/profile-form'
 
 export default function PerfilPage() {
-  return (
-    <PagePlaceholder
-      title="Mi perfil"
-      description="Editar nombre, avatar, ubicación y bio. Compartido entre todos los roles."
-    />
-  )
+  return <ProfileForm />
 }

@@ -8,6 +8,7 @@ import { useSession } from '@/components/providers/session-provider'
 import { Label } from '@/components/ui/label'
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
+import { RowsSkeleton } from '@/components/common/page-skeleton'
 import { CertificateItem } from './certificate-item'
 
 const SELECT_CLASS =
@@ -100,7 +101,7 @@ export function CertificatesList() {
       {error ? (
         <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
       ) : loading || !data ? (
-        <p className="text-muted-foreground text-sm">Cargando…</p>
+        <RowsSkeleton count={4} />
       ) : visible.length === 0 ? (
         <EmptyState
           icon={FileText}

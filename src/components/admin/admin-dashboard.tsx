@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
 import { MoneyDisplay } from '@/components/common/money-display'
+import { PageSkeleton } from '@/components/common/page-skeleton'
 import { StatusBadge } from '@/components/campaigns/status-badge'
 
 interface DashboardData {
@@ -50,10 +51,7 @@ export function AdminDashboard() {
       )
       const totalCommissions = allWithdrawals
         .filter((w: Withdrawal) => w.status === 'paid' || w.status === 'approved')
-        .reduce<ReturnType<typeof zeroMoney>>(
-          (acc, w) => addMoney(acc, w.commission),
-          zeroMoney()
-        )
+        .reduce<ReturnType<typeof zeroMoney>>((acc, w) => addMoney(acc, w.commission), zeroMoney())
       const campaignsById = new Map<string, Campaign>()
       allCampaigns.forEach((c) => campaignsById.set(c.id, c))
 
@@ -89,7 +87,7 @@ export function AdminDashboard() {
   }, [retryKey])
 
   if (error) return <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
-  if (loading || !data) return <p className="text-muted-foreground py-6 text-sm">Cargando…</p>
+  if (loading || !data) return <PageSkeleton variant="summary" />
 
   return (
     <div className="flex flex-col gap-8">
@@ -184,7 +182,10 @@ export function AdminDashboard() {
                   <span className="text-muted-foreground text-xs">
                     {formatShortDate(report.createdAt)}
                   </span>
-                  <ArrowRight className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
+                  <ArrowRight
+                    className="text-muted-foreground size-4 shrink-0"
+                    aria-hidden="true"
+                  />
                 </Link>
               )
             })}

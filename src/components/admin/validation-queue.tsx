@@ -9,6 +9,7 @@ import { formatShortDate } from '@/lib/dates'
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
 import { MoneyDisplay } from '@/components/common/money-display'
+import { PageSkeleton } from '@/components/common/page-skeleton'
 
 interface Data {
   campaigns: Campaign[]
@@ -53,7 +54,7 @@ export function ValidationQueue() {
   }, [retryKey])
 
   if (error) return <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
-  if (loading || !data) return <p className="text-muted-foreground py-6 text-sm">Cargando…</p>
+  if (loading || !data) return <PageSkeleton variant="list" />
 
   return (
     <div className="flex flex-col gap-6">
@@ -91,7 +92,10 @@ export function ValidationQueue() {
                   <span className="text-muted-foreground">Meta</span>
                   <MoneyDisplay value={c.goal} className="text-sm font-medium" />
                 </div>
-                <ChevronRight className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
+                <ChevronRight
+                  className="text-muted-foreground size-4 shrink-0"
+                  aria-hidden="true"
+                />
               </Link>
             )
           })}

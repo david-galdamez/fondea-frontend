@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ErrorState } from '@/components/common/error-state'
+import { PageSkeleton } from '@/components/common/page-skeleton'
 
 interface NewUpdateFormProps {
   campaignId: string
@@ -72,7 +73,7 @@ export function NewUpdateForm({ campaignId }: NewUpdateFormProps) {
   }
 
   if (error) return <ErrorState />
-  if (loading || !campaign) return <p className="text-muted-foreground py-6 text-sm">Cargando…</p>
+  if (loading || !campaign) return <PageSkeleton variant="form" />
 
   return (
     <div className="flex flex-col gap-6">

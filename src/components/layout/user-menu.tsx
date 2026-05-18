@@ -64,8 +64,8 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
 
         {sortedRoles.length > 0 && (
           <>
-            <DropdownMenuLabel>Mis paneles</DropdownMenuLabel>
             <DropdownMenuGroup>
+              <DropdownMenuLabel>Mis paneles</DropdownMenuLabel>
               {sortedRoles.map((role) => {
                 const Icon = ROLE_ICON[role]
                 const isActive = activeRole === role

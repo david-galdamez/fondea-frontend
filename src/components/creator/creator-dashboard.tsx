@@ -11,6 +11,7 @@ import { useSession } from '@/components/providers/session-provider'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
+import { PageSkeleton } from '@/components/common/page-skeleton'
 import { MoneyDisplay } from '@/components/common/money-display'
 import { StatusBadge } from '@/components/campaigns/status-badge'
 import { CampaignProgress } from '@/components/campaigns/campaign-progress'
@@ -38,16 +39,10 @@ export function CreatorDashboard() {
     if (!userId) return
     let cancelled = false
 
-    Promise.all([
-      campaignsService.getByCreator(userId),
-      withdrawalsService.listByCreator(userId),
-    ])
+    Promise.all([campaignsService.getByCreator(userId), withdrawalsService.listByCreator(userId)])
       .then(([campaigns, withdrawals]) => {
         if (cancelled) return
-        const totalRaised = campaigns.reduce(
-          (acc, c) => addMoney(acc, c.raised),
-          zeroMoney()
-        )
+        const totalRaised = campaigns.reduce((acc, c) => addMoney(acc, c.raised), zeroMoney())
         setData({
           campaigns,
           withdrawals,
@@ -74,7 +69,7 @@ export function CreatorDashboard() {
     return <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
   }
   if (loading || !data) {
-    return <p className="text-muted-foreground py-6 text-sm">Cargando…</p>
+    return <PageSkeleton variant="summary" />
   }
 
   const activeCampaigns = data.campaigns
@@ -93,9 +88,7 @@ export function CreatorDashboard() {
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-1">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Hola, {userName ?? 'Creador'}
-        </h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Hola, {userName ?? 'Creador'}</h1>
         <p className="text-muted-foreground text-sm">
           Tu panel de campañas y fondos en un solo lugar.
         </p>

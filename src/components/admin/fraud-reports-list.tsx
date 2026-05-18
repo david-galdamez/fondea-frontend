@@ -9,6 +9,7 @@ import { formatShortDate } from '@/lib/dates'
 import { Label } from '@/components/ui/label'
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
+import { RowsSkeleton } from '@/components/common/page-skeleton'
 
 const SELECT_CLASS =
   'border-input bg-background h-8 rounded-lg border px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50'
@@ -105,11 +106,15 @@ export function FraudReportsList() {
       {error ? (
         <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
       ) : loading || !data ? (
-        <p className="text-muted-foreground text-sm">Cargando…</p>
+        <RowsSkeleton count={4} rowHeight="h-20" />
       ) : data.reports.length === 0 ? (
         <EmptyState
           icon={Flag}
-          title={statusFilter ? `Sin reportes ${STATUS_LABEL[statusFilter as FraudReportStatus].toLowerCase()}` : 'Sin reportes registrados'}
+          title={
+            statusFilter
+              ? `Sin reportes ${STATUS_LABEL[statusFilter as FraudReportStatus].toLowerCase()}`
+              : 'Sin reportes registrados'
+          }
         />
       ) : (
         <div className="flex flex-col gap-2">
@@ -137,7 +142,10 @@ export function FraudReportsList() {
                     {STATUS_LABEL[r.status]}
                   </span>
                 </div>
-                <ChevronRight className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
+                <ChevronRight
+                  className="text-muted-foreground size-4 shrink-0"
+                  aria-hidden="true"
+                />
               </Link>
             )
           })}

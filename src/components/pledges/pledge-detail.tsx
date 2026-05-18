@@ -16,8 +16,10 @@ import {
 import { formatLongDate } from '@/lib/dates'
 import { useSession } from '@/components/providers/session-provider'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { ErrorState } from '@/components/common/error-state'
 import { MoneyDisplay } from '@/components/common/money-display'
+import { PageSkeleton } from '@/components/common/page-skeleton'
 import { PledgeStatusBadge } from './pledge-status-badge'
 
 interface PledgeDetailProps {
@@ -39,6 +41,7 @@ export function PledgeDetail({ id }: PledgeDetailProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
   const [cancelling, setCancelling] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const [retryKey, setRetryKey] = useState(0)
 
   useEffect(() => {
@@ -79,6 +82,7 @@ export function PledgeDetail({ id }: PledgeDetailProps) {
     try {
       await pledgesService.cancel(data.pledge.id, userId)
       toast.success('Promesa cancelada')
+      setConfirmOpen(false)
       router.push('/dashboard/pledges')
     } catch (err) {
       const message =
@@ -90,7 +94,7 @@ export function PledgeDetail({ id }: PledgeDetailProps) {
   }
 
   if (loading) {
-    return <p className="text-muted-foreground py-6 text-sm">Cargando…</p>
+    return <PageSkeleton variant="detail" />
   }
 
   if (error instanceof NotFoundError) {
@@ -178,12 +182,26 @@ export function PledgeDetail({ id }: PledgeDetailProps) {
           variant="outline"
         />
         {canCancel && (
-          <Button variant="destructive" onClick={handleCancel} disabled={cancelling}>
-            <XCircle className="size-4" />
-            {cancelling ? 'Cancelando…' : 'Cancelar promesa'}
+          <Button variant="destructive" onClick={() => setConfirmOpen(true)} disabled={cancelling}>
+            <XCircle className="size-4" aria-hidden="true" />
+            Cancelar promesa
           </Button>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={(next) => {
+          if (!cancelling) setConfirmOpen(next)
+        }}
+        title="¿Cancelar esta promesa?"
+        description="No se cobrará nada y la promesa quedará marcada como cancelada. Esta acción no se puede deshacer."
+        confirmLabel="Sí, cancelar"
+        cancelLabel="Volver"
+        variant="destructive"
+        confirming={cancelling}
+        onConfirm={handleCancel}
+      />
     </div>
   )
 }

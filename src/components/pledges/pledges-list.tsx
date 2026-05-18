@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
+import { RowsSkeleton } from '@/components/common/page-skeleton'
 import { PledgeListItem } from './pledge-list-item'
 
 const STATUS_OPTIONS: { value: '' | PledgeStatus; label: string }[] = [
@@ -115,7 +116,7 @@ export function PledgesList() {
       {error ? (
         <ErrorState onRetry={handleRetry} />
       ) : loading || !data ? (
-        <p className="text-muted-foreground text-sm">Cargando…</p>
+        <RowsSkeleton count={4} rowHeight="h-20" />
       ) : visiblePledges.length === 0 ? (
         <EmptyState
           icon={HandHeart}
