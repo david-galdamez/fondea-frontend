@@ -4,9 +4,9 @@ import type { Role, User } from '@/types'
  * Devuelve la ruta del panel "primario" del usuario según prioridad fija:
  * admin > creator > backer.
  */
-export function getPrimaryPath(user: Pick<User, 'roles'>): string {
-  if (user.roles.includes('admin')) return '/admin'
-  if (user.roles.includes('creator')) return '/creador'
+export function getPrimaryPath(user: Pick<User, 'role'>): string {
+  if (user.role === "ADMIN") return '/admin'
+  if (user.role === "CREATOR") return '/creador'
   return '/dashboard'
 }
 
@@ -14,18 +14,18 @@ export function getPrimaryPath(user: Pick<User, 'roles'>): string {
  * Mapeo de rol → URL home del panel correspondiente.
  */
 export const ROLE_HOME: Record<Role, string> = {
-  admin: '/admin',
-  creator: '/creador',
-  backer: '/dashboard',
+  ADMIN: '/admin',
+  CREATOR: '/creador',
+  SPONSOR: '/dashboard',
 }
 
 /**
  * Etiqueta legible (UI en español) para cada rol.
  */
 export const ROLE_LABEL: Record<Role, string> = {
-  admin: 'Administrador',
-  creator: 'Creador',
-  backer: 'Patrocinador',
+  ADMIN: 'Administrador',
+  CREATOR: 'Creador',
+  SPONSOR: 'Patrocinador',
 }
 
 /**
@@ -33,7 +33,7 @@ export const ROLE_LABEL: Record<Role, string> = {
  * requiere autenticación (no un rol específico).
  */
 export function requiredRoleForPath(pathname: string): Role | null {
-  if (pathname.startsWith('/admin')) return 'admin'
-  if (pathname.startsWith('/creador')) return 'creator'
+  if (pathname.startsWith('/admin')) return "ADMIN"
+  if (pathname.startsWith('/creador')) return "CREATOR"
   return null
 }

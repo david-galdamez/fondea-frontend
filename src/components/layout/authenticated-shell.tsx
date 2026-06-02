@@ -28,7 +28,7 @@ export function AuthenticatedShell({ requiredRole, sidebar, children }: Authenti
       router.replace('/auth/login')
       return
     }
-    if (requiredRole && !session.user.roles.includes(requiredRole)) {
+    if (requiredRole && session.user.role === requiredRole) {
       router.replace(getPrimaryPath(session.user))
     }
   }, [isLoading, session, requiredRole, router])
@@ -70,7 +70,7 @@ export function AuthenticatedShell({ requiredRole, sidebar, children }: Authenti
     )
   }
 
-  if (requiredRole && !session.user.roles.includes(requiredRole)) {
+  if (requiredRole && session.user.role !== requiredRole) {
     return (
       <div className="flex flex-1 items-center justify-center px-4 py-16" role="alert">
         <p className="text-muted-foreground text-sm">

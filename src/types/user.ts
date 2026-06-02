@@ -1,6 +1,6 @@
-import type { ID, ISODateString, Money } from './common'
+import type { ISODateString, Money } from './common'
 
-export type Role = 'admin' | 'creator' | 'backer'
+export type Role = 'ADMIN' | 'CREATOR' | 'SPONSOR'
 
 export interface Location {
   city: string
@@ -8,20 +8,15 @@ export interface Location {
 }
 
 export interface User {
-  id: ID
+  id: string
   email: string
   name: string
-  avatarUrl?: string
-  roles: Role[]
-  location?: Location
-  bio?: string
-  verifiedAt?: ISODateString
+  role: Role
   isNewCreator?: boolean
   totalRaised?: Money
   campaignsCount?: number
   pledgesCount?: number
   totalPledged?: Money
-  createdAt: ISODateString
 }
 
 export interface Session {

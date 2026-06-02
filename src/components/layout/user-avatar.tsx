@@ -32,12 +32,12 @@ export function UserAvatar({ user, size = 'md', className }: UserAvatarProps) {
       )}
       aria-hidden="true"
     >
-      {user.avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
-      ) : (
-        <span>{initials(user.name)}</span>
-      )}
+      {/* {user.avatarUrl ? ( */}
+      {/*   // eslint-disable-next-line @next/next/no-img-element */}
+      {/*   <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" loading="lazy" /> */}
+      {/* ) : ( */}
+      {/*   <span>{initials(user.name)}</span> */}
+      {/* )} */}
     </span>
   )
 }

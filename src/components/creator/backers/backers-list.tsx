@@ -106,9 +106,6 @@ export function BackersList({ campaignId }: BackersListProps) {
                   </p>
                   <p className="text-muted-foreground text-xs">
                     {formatShortDate(p.createdAt)}
-                    {!p.isAnonymous && backer?.location?.country && (
-                      <> · {backer.location.country}</>
-                    )}
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-1">
