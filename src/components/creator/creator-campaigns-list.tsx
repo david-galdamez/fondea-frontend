@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { Megaphone, Plus } from 'lucide-react'
-import type { Campaign, CampaignStatus } from '@/types'
+import type { CampaignStatus } from '@/types'
 import { campaignsService } from '@/lib/api'
 import { useSession } from '@/components/providers/session-provider'
 import { Button } from '@/components/ui/button'
@@ -12,26 +12,27 @@ import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
 import { RowsSkeleton } from '@/components/common/page-skeleton'
 import { CreatorCampaignCard } from './creator-campaign-card'
+import { MyCampaignDto } from '@/lib/api/campaigns.service';
 
 const SELECT_CLASS =
   'border-input bg-background h-8 rounded-lg border px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50'
 
 const STATUS_OPTIONS: { value: CampaignStatus | ''; label: string }[] = [
   { value: '', label: 'Todos' },
-  { value: 'draft', label: 'Borrador' },
-  { value: 'pending_review', label: 'En revisión' },
-  { value: 'rejected', label: 'Rechazadas' },
-  { value: 'active', label: 'Activas' },
-  { value: 'successful', label: 'Exitosas' },
-  { value: 'failed', label: 'No alcanzaron meta' },
-  { value: 'cancelled', label: 'Canceladas' },
+  { value: 'DRAFT', label: 'Borrador' },
+  { value: 'PENDING_REVIEW', label: 'En revisión' },
+  { value: 'REJECTED', label: 'Rechazadas' },
+  { value: 'ACTIVE', label: 'Activas' },
+  { value: 'SUCCESSFUL', label: 'Exitosas' },
+  { value: 'FAILED', label: 'No alcanzaron meta' },
+  { value: 'CANCELLED', label: 'Canceladas' },
 ]
 
 export function CreatorCampaignsList() {
   const { session } = useSession()
   const userId = session?.user.id
 
-  const [campaigns, setCampaigns] = useState<Campaign[] | null>(null)
+  const [campaigns, setCampaigns] = useState<MyCampaignDto[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [retryKey, setRetryKey] = useState(0)
@@ -41,7 +42,7 @@ export function CreatorCampaignsList() {
     if (!userId) return
     let cancelled = false
     campaignsService
-      .getByCreator(userId)
+      .getMine()
       .then((items) => {
         if (cancelled) return
         setCampaigns(items)
@@ -61,7 +62,7 @@ export function CreatorCampaignsList() {
   const visible = useMemo(() => {
     if (!campaigns) return []
     const filtered = statusFilter ? campaigns.filter((c) => c.status === statusFilter) : campaigns
-    return [...filtered].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    return [...filtered].sort((a, b) => b.deadline.localeCompare(a.deadline))
   }, [campaigns, statusFilter])
 
   return (

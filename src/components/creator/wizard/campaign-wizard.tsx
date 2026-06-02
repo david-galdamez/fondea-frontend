@@ -4,21 +4,16 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight, Save, Send } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Campaign, CampaignDraft, Category, FAQ, Reward } from '@/types'
-import {
-  ApiError,
-  campaignsService,
-  categoriesService,
-  faqsService,
-  rewardsService,
-} from '@/lib/api'
+import type { Category } from '@/types'
+import { ApiError, campaignsService, rewardsService } from '@/lib/api'
+import type { RegisterCampaignRequest } from '@/lib/api/campaigns.service'
+import type { CreateRewardRequest } from '@/lib/api/rewards.service'
 import { MAX_CAMPAIGN_DURATION_DAYS, MIN_CAMPAIGN_DURATION_DAYS } from '@/lib/constants'
-import { centsToDollarsString, dollarsToCents, dollarsToMoney } from '@/lib/wizard-helpers'
-import { useSession } from '@/components/providers/session-provider'
+import { dollarsToCents } from '@/lib/wizard-helpers'
 import { Button } from '@/components/ui/button'
 import { Stepper } from './stepper'
+import { computeCloseDate, StepGoal } from './step-goal'
 import { StepBasics } from './step-basics'
-import { StepGoal } from './step-goal'
 import { StepDescription } from './step-description'
 import { StepRewards } from './step-rewards'
 import { StepFAQs } from './step-faqs'
@@ -30,84 +25,93 @@ import {
   type WizardFields,
   type WizardRewardDraft,
 } from './types'
+import type { Location } from '@/types/campaign'
+import { locationServices } from '@/lib/api/locations.service'
+import { categoriesService } from '@/lib/api/categories.service'
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface CampaignWizardProps {
   initial: {
-    campaign: Campaign
-    rewards: Reward[]
-    faqs: FAQ[]
+    campaignId: string
+    fields: WizardFields
+    rewards: WizardRewardDraft[]
+    status: string
   } | null
   initialStep?: number
 }
 
 const EMPTY_FIELDS: WizardFields = {
   title: '',
-  summary: '',
   description: '',
   categoryId: '',
+  locationId: '',
   city: '',
-  country: '',
-  tags: '',
-  goalType: 'fixed',
+  isFlexibleGoal: false,
   goalAmount: '',
   durationDays: 30,
-  coverImageUrl: '',
-  gallery: '',
-  videoUrl: '',
+  deadline: computeCloseDate(30),
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Convierte durationDays a "YYYY-MM-DD" para el backend */
+function toDeadline(durationDays: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() + durationDays)
+  return d.toISOString().split('T')[0]!
+}
+
+function clampStep(value: number): number {
+  if (!Number.isFinite(value)) return 1
+  return Math.max(1, Math.min(TOTAL_STEPS, Math.round(value)))
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function CampaignWizard({ initial, initialStep = 1 }: CampaignWizardProps) {
   const router = useRouter()
-  const { session } = useSession()
-  const userId = session?.user.id
-
   const [step, setStep] = useState<number>(clampStep(initialStep))
-  const [campaignId, setCampaignId] = useState<string | null>(initial?.campaign.id ?? null)
-  const [fields, setFields] = useState<WizardFields>(() =>
-    initial ? toFields(initial.campaign) : EMPTY_FIELDS
-  )
-  const [rewards, setRewards] = useState<WizardRewardDraft[]>(() =>
-    initial ? initial.rewards.map(toRewardDraft) : []
-  )
-  const [faqs, setFAQs] = useState<WizardFAQDraft[]>(() =>
-    initial ? initial.faqs.map((f) => ({ question: f.question, answer: f.answer })) : []
-  )
-  const [originalRewardIds, setOriginalRewardIds] = useState<Set<string>>(
-    () => new Set(initial?.rewards.map((r) => r.id) ?? [])
-  )
+  const [campaignId, setCampaignId] = useState<string | null>(initial?.campaignId ?? null)
+  const [fields, setFields] = useState<WizardFields>(initial?.fields ?? EMPTY_FIELDS)
+  const [rewards, setRewards] = useState<WizardRewardDraft[]>(initial?.rewards ?? [])
+  const [faqs] = useState<WizardFAQDraft[]>([]) // FAQs omitidas del wizard por ahora
   const [errors, setErrors] = useState<Partial<Record<keyof WizardFields, string>>>({})
   const [categories, setCategories] = useState<Category[]>([])
+  const [locations, setLocations] = useState<Location[]>([])
   const [busy, setBusy] = useState(false)
 
+  const isReadOnly =
+    !!initial &&
+    initial.status !== 'DRAFT' &&
+    initial.status !== 'REJECTED'
+
+  const rewardsDisabled = !campaignId
+
   useEffect(() => {
-    categoriesService
-      .list()
-      .then(setCategories)
-      .catch(() => setCategories([]))
+    categoriesService.list().then(setCategories).catch(() => setCategories([]))
+    locationServices.list().then(setLocations).catch(() => setLocations([]))
   }, [])
 
-  const isReadOnly =
-    !!initial?.campaign &&
-    initial.campaign.status !== 'draft' &&
-    initial.campaign.status !== 'rejected'
-  const rewardsDisabled = !campaignId
+  // ─── Fields ────────────────────────────────────────────────────────────────
 
   function updateFields(patch: Partial<WizardFields>) {
     setFields((prev) => ({ ...prev, ...patch }))
     setErrors((prev) => {
       const next = { ...prev }
-      ;(Object.keys(patch) as (keyof WizardFields)[]).forEach((k) => delete next[k])
+        ; (Object.keys(patch) as (keyof WizardFields)[]).forEach((k) => delete next[k])
       return next
     })
   }
+
+  // ─── Validation ────────────────────────────────────────────────────────────
 
   function validateStep(targetStep: number): boolean {
     const errs: Partial<Record<keyof WizardFields, string>> = {}
     if (targetStep === 1) {
       if (!fields.title.trim()) errs.title = 'Requerido'
-      if (!fields.summary.trim()) errs.summary = 'Requerido'
       if (!fields.categoryId) errs.categoryId = 'Selecciona una categoría'
-      if (!fields.country.trim()) errs.country = 'Requerido'
+      if (!fields.locationId) errs.locationId = 'Selecciona el país'
     }
     if (targetStep === 2) {
       if (dollarsToCents(fields.goalAmount) <= 0) errs.goalAmount = 'Debe ser mayor a cero'
@@ -125,38 +129,29 @@ export function CampaignWizard({ initial, initialStep = 1 }: CampaignWizardProps
     return Object.keys(errs).length === 0
   }
 
-  function buildDraft(): CampaignDraft {
+  // ─── Build request ─────────────────────────────────────────────────────────
+
+  function buildRequest(): RegisterCampaignRequest {
     return {
       title: fields.title.trim(),
-      summary: fields.summary.trim(),
       description: fields.description,
+      goalAmount: Number(fields.goalAmount),
+      isFlexibleGoal: fields.isFlexibleGoal,
+      deadline: toDeadline(fields.durationDays),
       categoryId: fields.categoryId,
-      location: { city: fields.city.trim(), country: fields.country.trim() },
-      tags: fields.tags
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean),
-      goal: dollarsToMoney(fields.goalAmount),
-      goalType: fields.goalType,
-      durationDays: fields.durationDays,
-      coverImageUrl: fields.coverImageUrl || undefined,
-      gallery: fields.gallery
-        .split('\n')
-        .map((s) => s.trim())
-        .filter(Boolean),
-      videoUrl: fields.videoUrl || undefined,
+      locationId: fields.locationId,
+      city: fields.city
     }
   }
 
-  async function persistDraft(): Promise<string | null> {
-    if (!userId) return null
-    const draft = buildDraft()
+  async function persistCampaign(): Promise<string | null> {
+    const body = buildRequest()
     try {
       if (campaignId) {
-        await campaignsService.update(campaignId, draft)
+        await campaignsService.update(campaignId, body)
         return campaignId
       }
-      const created = await campaignsService.create(userId, draft)
+      const created = await campaignsService.create(body)
       setCampaignId(created.id)
       return created.id
     } catch (err) {
@@ -167,49 +162,48 @@ export function CampaignWizard({ initial, initialStep = 1 }: CampaignWizardProps
   }
 
   async function syncRewards(targetCampaignId: string) {
-    const surviving = new Set<string>()
-    const nextDrafts: WizardRewardDraft[] = []
-    for (let i = 0; i < rewards.length; i++) {
-      const draft = rewards[i]!
-      const payload = {
-        campaignId: targetCampaignId,
-        title: draft.title.trim(),
-        description: draft.description,
-        minAmount: dollarsToMoney(draft.minAmount || '0'),
-        estimatedDelivery: draft.estimatedDelivery || undefined,
-        stock: draft.stock ? Number(draft.stock) : undefined,
-        shippingRegions: undefined,
-        order: i,
+    const savedIds = new Set(rewards.filter((r) => r.id).map((r) => r.id!))
+
+    // Obtener los que ya existen en el backend para saber cuáles borrar
+    const existing = await rewardsService.getManage(targetCampaignId)
+    const existingIds = new Set(existing.map((r) => r.id))
+
+    // Eliminar los que se quitaron del wizard
+    for (const id of existingIds) {
+      if (!savedIds.has(id)) {
+        await rewardsService.remove(targetCampaignId, id)
       }
-      if (!payload.title || payload.minAmount.amount <= 0) {
-        nextDrafts.push(draft)
+    }
+
+    // Crear los nuevos (sin id)
+    const nextRewards: WizardRewardDraft[] = []
+    for (const draft of rewards) {
+      if (!draft.title.trim() || !draft.minAmount) {
+        nextRewards.push(draft)
         continue
       }
-      if (draft.id) {
-        await rewardsService.update(draft.id, payload)
-        surviving.add(draft.id)
-        nextDrafts.push(draft)
+
+      const payload: CreateRewardRequest = {
+        title: draft.title.trim(),
+        description: draft.description || undefined,
+        minAmount: Number(draft.minAmount),
+        stock: draft.stock ? Number(draft.stock) : undefined,
+        estimatedDelivery: draft.estimatedDelivery || undefined,
+      }
+
+      if (draft.id && existingIds.has(draft.id)) {
+        // El backend no tiene PUT en rewards por ahora, lo dejamos como está
+        nextRewards.push(draft)
       } else {
-        const created = await rewardsService.create(payload)
-        surviving.add(created.id)
-        nextDrafts.push({ ...draft, id: created.id })
+        const created = await rewardsService.create(targetCampaignId, payload)
+        nextRewards.push({ ...draft, id: created.id })
       }
     }
-    for (const oldId of originalRewardIds) {
-      if (!surviving.has(oldId)) {
-        await rewardsService.remove(oldId)
-      }
-    }
-    setRewards(nextDrafts)
-    setOriginalRewardIds(surviving)
+
+    setRewards(nextRewards)
   }
 
-  async function syncFAQs(targetCampaignId: string) {
-    const valid = faqs
-      .map((f) => ({ question: f.question.trim(), answer: f.answer.trim() }))
-      .filter((f) => f.question && f.answer)
-    await faqsService.upsert(targetCampaignId, valid)
-  }
+  // ─── Save draft ────────────────────────────────────────────────────────────
 
   async function handleSaveDraft() {
     if (!validateStep(1) || !validateStep(2)) {
@@ -218,50 +212,32 @@ export function CampaignWizard({ initial, initialStep = 1 }: CampaignWizardProps
       return
     }
     setBusy(true)
-    const id = await persistDraft()
-    if (!id) {
-      setBusy(false)
-      return
-    }
+    const id = await persistCampaign()
+    if (!id) { setBusy(false); return }
     try {
       await syncRewards(id)
-      await syncFAQs(id)
       toast.success('Borrador guardado')
       if (!initial) {
         router.replace(`/creador/campanas/${id}/editar?step=${step}`)
       }
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : 'No pudimos sincronizar todo'
+      const message = err instanceof ApiError ? err.message : 'No pudimos sincronizar las recompensas'
       toast.error(message)
     }
     setBusy(false)
   }
 
+  // ─── Submit ────────────────────────────────────────────────────────────────
+
   async function handleSubmit() {
-    if (!validateStep(1)) {
-      toast.error('Revisa la información básica')
-      setStep(1)
-      return
-    }
-    if (!validateStep(2)) {
-      toast.error('Revisa la meta y plazo')
-      setStep(2)
-      return
-    }
-    if (!validateStep(3)) {
-      toast.error('Falta la descripción')
-      setStep(3)
-      return
-    }
+    if (!validateStep(1)) { toast.error('Revisa la información básica'); setStep(1); return }
+    if (!validateStep(2)) { toast.error('Revisa la meta y plazo'); setStep(2); return }
+    if (!validateStep(3)) { toast.error('Falta la descripción'); setStep(3); return }
     setBusy(true)
-    const id = await persistDraft()
-    if (!id) {
-      setBusy(false)
-      return
-    }
+    const id = await persistCampaign()
+    if (!id) { setBusy(false); return }
     try {
       await syncRewards(id)
-      await syncFAQs(id)
       await campaignsService.submitForReview(id)
       toast.success('Campaña enviada a revisión')
       router.push('/creador/campanas')
@@ -271,6 +247,8 @@ export function CampaignWizard({ initial, initialStep = 1 }: CampaignWizardProps
       setBusy(false)
     }
   }
+
+  // ─── Navigation ────────────────────────────────────────────────────────────
 
   function goNext() {
     if (step <= 3 && !validateStep(step)) return
@@ -289,6 +267,8 @@ export function CampaignWizard({ initial, initialStep = 1 }: CampaignWizardProps
     number: i + 1,
     label: STEP_LABELS[i + 1] ?? '',
   }))
+
+  // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col gap-6">
@@ -318,17 +298,16 @@ export function CampaignWizard({ initial, initialStep = 1 }: CampaignWizardProps
             fields={fields}
             errors={errors}
             categories={categories}
+            locations={locations}
             onChange={updateFields}
           />
         )}
         {step === 2 && <StepGoal fields={fields} errors={errors} onChange={updateFields} />}
-        {step === 3 && (
-          <StepDescription fields={fields} errors={errors} onChange={updateFields} />
-        )}
+        {step === 3 && <StepDescription fields={fields} errors={errors} onChange={updateFields} />}
         {step === 4 && (
           <StepRewards rewards={rewards} disabled={rewardsDisabled} onChange={setRewards} />
         )}
-        {step === 5 && <StepFAQs faqs={faqs} disabled={rewardsDisabled} onChange={setFAQs} />}
+        {step === 5 && <StepFAQs faqs={faqs} disabled={true} onChange={() => { }} />}
         {step === 6 && (
           <StepReview fields={fields} rewards={rewards} faqs={faqs} categories={categories} />
         )}
@@ -365,38 +344,4 @@ export function CampaignWizard({ initial, initialStep = 1 }: CampaignWizardProps
       </footer>
     </div>
   )
-}
-
-function clampStep(value: number): number {
-  if (!Number.isFinite(value)) return 1
-  return Math.max(1, Math.min(TOTAL_STEPS, Math.round(value)))
-}
-
-function toFields(campaign: Campaign): WizardFields {
-  return {
-    title: campaign.title,
-    summary: campaign.summary,
-    description: campaign.description,
-    categoryId: campaign.categoryId,
-    city: campaign.location.city ?? '',
-    country: campaign.location.country,
-    tags: campaign.tags.join(', '),
-    goalType: campaign.goalType,
-    goalAmount: campaign.goal.amount > 0 ? centsToDollarsString(campaign.goal.amount) : '',
-    durationDays: campaign.durationDays || 30,
-    coverImageUrl: campaign.coverImageUrl ?? '',
-    gallery: campaign.gallery.join('\n'),
-    videoUrl: campaign.videoUrl ?? '',
-  }
-}
-
-function toRewardDraft(reward: Reward): WizardRewardDraft {
-  return {
-    id: reward.id,
-    title: reward.title,
-    description: reward.description,
-    minAmount: centsToDollarsString(reward.minAmount.amount),
-    estimatedDelivery: reward.estimatedDelivery ?? '',
-    stock: reward.stock !== undefined ? String(reward.stock) : '',
-  }
 }

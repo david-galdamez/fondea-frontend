@@ -124,7 +124,7 @@ export function UsersList() {
               </span>
 
               <span className="text-muted-foreground hidden text-xs sm:inline">
-                {/* Desde {formatShortDate(u.createdAt)} */}
+                Desde {formatShortDate(u.createdAt)}
               </span>
             </article>
           ))}

@@ -12,7 +12,12 @@ export interface User {
   email: string
   name: string
   role: Role
+  createdAt: string
+  city?: string
+  country?: string
+  bio?: string
   isNewCreator?: boolean
+  isVerified?: boolean
   totalRaised?: Money
   campaignsCount?: number
   pledgesCount?: number

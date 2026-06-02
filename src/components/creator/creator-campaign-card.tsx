@@ -1,50 +1,45 @@
 import Link from 'next/link'
 import { CalendarClock, ExternalLink, MessageSquare, Pencil, Users } from 'lucide-react'
-import type { Campaign } from '@/types'
 import { formatShortDate } from '@/lib/dates'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/campaigns/status-badge'
 import { CampaignProgress } from '@/components/campaigns/campaign-progress'
+import { MyCampaignDto } from '@/lib/api/campaigns.service';
+import { formatMoney, money } from '@/lib/money';
 
 interface CreatorCampaignCardProps {
-  campaign: Campaign
+  campaign: MyCampaignDto
 }
 
 export function CreatorCampaignCard({ campaign }: CreatorCampaignCardProps) {
-  const isEditable = campaign.status === 'draft' || campaign.status === 'rejected'
+  const isEditable = campaign.status === 'DRAFT' || campaign.status === 'REJECTED'
   const hasPublicPage =
-    campaign.status === 'active' ||
-    campaign.status === 'successful' ||
-    campaign.status === 'failed'
+    campaign.status === 'ACTIVE' ||
+    campaign.status === 'SUCCESSFUL' ||
+    campaign.status === 'FAILED'
 
   return (
     <article className="border-border bg-card flex flex-col gap-4 rounded-lg border p-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <h3 className="truncate text-base font-semibold">{campaign.title}</h3>
-          <p className="text-muted-foreground line-clamp-1 text-sm">{campaign.summary}</p>
-          {campaign.rejectionReason && (
-            <p className="text-destructive mt-1 text-xs">
-              Motivo de rechazo: {campaign.rejectionReason}
-            </p>
-          )}
         </div>
         <StatusBadge status={campaign.status} />
       </header>
 
       <CampaignProgress
-        raised={campaign.raised}
-        goal={campaign.goal}
-        backersCount={campaign.backersCount}
+        raised={money(Math.round(campaign.totalPledged * 100))}
+        goal={money(Math.round(campaign.goalAmount * 100))}
+        backersCount={campaign.pledgeCount}
         size="sm"
       />
 
-      {campaign.endDate && (
+      {campaign.deadline && (
         <p className="text-muted-foreground inline-flex items-center gap-1 text-xs">
           <CalendarClock className="size-3" aria-hidden="true" />
-          {campaign.status === 'active'
-            ? `Cierra el ${formatShortDate(campaign.endDate)}`
-            : `Cerró el ${formatShortDate(campaign.endDate)}`}
+          {campaign.status !== 'FAILED'
+            ? `Cierra el ${formatShortDate(campaign.deadline)}`
+            : `Cerró el ${formatShortDate(campaign.deadline)}`}
         </p>
       )}
 
@@ -84,7 +79,7 @@ export function CreatorCampaignCard({ campaign }: CreatorCampaignCardProps) {
         </Button>
         {hasPublicPage && (
           <Button
-            render={<Link href={`/campanas/${campaign.slug}`} />}
+            render={<Link href={`/campanas/${campaign.id}`} />}
             variant="ghost"
             size="sm"
             className="ml-auto"
@@ -92,6 +87,14 @@ export function CreatorCampaignCard({ campaign }: CreatorCampaignCardProps) {
             <ExternalLink className="size-4" />
             Ver pública
           </Button>
+        )}
+        {campaign.status === 'SUCCESSFUL' && campaign.availableToWithdraw != null && (
+          <p className="text-muted-foreground text-xs">
+            Disponible para retirar:{' '}
+            <span className="text-foreground font-medium">
+              {formatMoney(money(Math.round(campaign.availableToWithdraw * 100)))}
+            </span>
+          </p>
         )}
       </footer>
     </article>

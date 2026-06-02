@@ -2,7 +2,7 @@ import type { User } from '@/types'
 import { cn } from '@/lib/utils'
 
 interface UserAvatarProps {
-  user: Pick<User, 'name' | 'avatarUrl'>
+  user: Pick<User, 'name'>
   size?: 'sm' | 'md' | 'lg'
   className?: string
 }
@@ -32,12 +32,7 @@ export function UserAvatar({ user, size = 'md', className }: UserAvatarProps) {
       )}
       aria-hidden="true"
     >
-      {/* {user.avatarUrl ? ( */}
-      {/*   // eslint-disable-next-line @next/next/no-img-element */}
-      {/*   <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" loading="lazy" /> */}
-      {/* ) : ( */}
-      {/*   <span>{initials(user.name)}</span> */}
-      {/* )} */}
+      <span>{initials(user.name)}</span>
     </span>
   )
 }

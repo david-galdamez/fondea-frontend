@@ -29,45 +29,46 @@ export interface LoginResponse {
   id: string
   name: string
   email: string
+  bio?: string
+  city?: string
+  country?: string
   role: Role
+  createdAt: string
+}
+
+function getUser(res: LoginResponse): User {
+  const user: User = {
+    id: res.id,
+    name: res.name,
+    email: res.email,
+    role: res.role,
+    createdAt: res.createdAt,
+    bio: res.bio,
+    city: res.city,
+    country: res.country
+  }
+
+  return user;
 }
 
 export const authService = {
   async login(input: LoginInput): Promise<Session> {
     const res = await api.post<LoginResponse>('/api/auth/login', input)
 
-    const user: User = {
-      id: res.id,
-      name: res.name,
-      email: res.email,
-      role: res.role
-    }
     tokenStore.set(res.token);
-    return buildSession(user, res.token);
+    return buildSession(getUser(res), res.token);
   },
 
   async registerCreator(input: RegisterInput): Promise<Session> {
     const res = await api.post<LoginResponse>('/api/auth/register-creator', input)
-    const user: User = {
-      id: res.id,
-      name: res.name,
-      email: res.email,
-      role: res.role
-    }
     tokenStore.set(res.token)
-    return buildSession(user, res.token)
+    return buildSession(getUser(res), res.token)
   },
 
   async registerSponsor(input: RegisterInput): Promise<Session> {
     const res = await api.post<LoginResponse>('/api/auth/register-sponsor', input)
-    const user: User = {
-      id: res.id,
-      name: res.name,
-      email: res.email,
-      role: res.role
-    }
     tokenStore.set(res.token)
-    return buildSession(user, res.token)
+    return buildSession(getUser(res), res.token)
   },
 
   async logout(): Promise<void> {

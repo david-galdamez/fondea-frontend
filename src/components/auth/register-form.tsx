@@ -11,27 +11,27 @@ import { ApiError, ValidationError } from '@/lib/api'
 import { getPrimaryPath } from '@/lib/auth-routing'
 import { useSession } from '@/components/providers/session-provider'
 
-type InitialRole = 'creator' | 'backer'
+type InitialRole = 'CREATOR' | 'SPONSOR'
 
 export function RegisterForm() {
-  const { signUp } = useSession()
+  const { signUpCreator, signUpSponsor } = useSession()
   const router = useRouter()
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [initialRole, setInitialRole] = useState<InitialRole>('backer')
+  const [initialRole, setInitialRole] = useState<InitialRole>('SPONSOR')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
     setFieldErrors({})
     setSubmitting(true)
     try {
-      const session = await signUp({ name, email, password, initialRole })
+      const session = initialRole === "SPONSOR" ? await signUpSponsor({ name, email, password }) : await signUpCreator({ name, email, password });
       toast.success(`Bienvenido, ${session.user.name}`)
       router.push(getPrimaryPath(session.user))
     } catch (err) {
@@ -102,15 +102,15 @@ export function RegisterForm() {
         <legend className="text-sm font-medium">¿Cómo vas a usar Fondea?</legend>
         <div className="grid gap-2 sm:grid-cols-2">
           <label
-            data-active={initialRole === 'backer'}
+            data-active={initialRole === 'SPONSOR'}
             className="border-border data-[active=true]:border-primary data-[active=true]:bg-primary/5 flex cursor-pointer flex-col gap-1 rounded-lg border p-3 text-sm transition-colors"
           >
             <input
               type="radio"
               name="initialRole"
               value="backer"
-              checked={initialRole === 'backer'}
-              onChange={() => setInitialRole('backer')}
+              checked={initialRole === 'SPONSOR'}
+              onChange={() => setInitialRole('SPONSOR')}
               className="sr-only"
             />
             <span className="font-medium">Apoyar campañas</span>
@@ -119,15 +119,15 @@ export function RegisterForm() {
             </span>
           </label>
           <label
-            data-active={initialRole === 'creator'}
+            data-active={initialRole === 'CREATOR'}
             className="border-border data-[active=true]:border-primary data-[active=true]:bg-primary/5 flex cursor-pointer flex-col gap-1 rounded-lg border p-3 text-sm transition-colors"
           >
             <input
               type="radio"
               name="initialRole"
               value="creator"
-              checked={initialRole === 'creator'}
-              onChange={() => setInitialRole('creator')}
+              checked={initialRole === 'CREATOR'}
+              onChange={() => setInitialRole('CREATOR')}
               className="sr-only"
             />
             <span className="font-medium">Crear campañas</span>

@@ -1,37 +1,33 @@
-import type { ID, ISODateString, Money } from './common'
-import type { Location } from './user'
-
-export type GoalType = 'fixed' | 'flexible'
+import type { ISODateString, Money } from './common'
 
 export type CampaignStatus =
-  | 'draft'
-  | 'pending_review'
-  | 'rejected'
-  | 'approved'
-  | 'active'
-  | 'successful'
-  | 'failed'
-  | 'cancelled'
+  | 'DRAFT'
+  | 'UNDER_REVIEW'
+  | 'ACTIVE'
+  | 'SUCCESSFUL'
+  | 'FAILED'
 
 export interface Category {
-  id: ID
-  slug: string
+  id: string
   name: string
-  icon?: string
+}
+
+export interface Location {
+  id: string
+  city: string
+  country: string
 }
 
 export interface Campaign {
-  id: ID
-  slug: string
+  id: string
   title: string
-  summary: string
   description: string
-  categoryId: ID
-  location: Location
-  tags: string[]
+  categoryId: string
+  locationId: string
+  city: string
   goal: Money
   raised: Money
-  goalType: GoalType
+  isFlexibleGoal: boolean
   backersCount: number
   startDate: ISODateString
   endDate: ISODateString
@@ -42,7 +38,7 @@ export interface Campaign {
   coverImageUrl?: string
   gallery: string[]
   videoUrl?: string
-  creatorId: ID
+  creatorId: string
   createdAt: ISODateString
   updatedAt: ISODateString
   approvedAt?: ISODateString
@@ -51,13 +47,12 @@ export interface Campaign {
 export type CampaignDraft = Pick<
   Campaign,
   | 'title'
-  | 'summary'
   | 'description'
   | 'categoryId'
-  | 'location'
-  | 'tags'
+  | 'locationId'
+  | 'city'
   | 'goal'
-  | 'goalType'
+  | 'isFlexibleGoal'
   | 'durationDays'
   | 'coverImageUrl'
   | 'gallery'
@@ -67,18 +62,17 @@ export type CampaignDraft = Pick<
 export type CampaignSummary = Pick<
   Campaign,
   | 'id'
-  | 'slug'
   | 'title'
-  | 'summary'
+  | 'description'
   | 'coverImageUrl'
   | 'goal'
   | 'raised'
-  | 'goalType'
+  | 'isFlexibleGoal'
   | 'backersCount'
   | 'endDate'
   | 'status'
   | 'featured'
   | 'categoryId'
-  | 'location'
+  | 'locationId'
   | 'creatorId'
 >

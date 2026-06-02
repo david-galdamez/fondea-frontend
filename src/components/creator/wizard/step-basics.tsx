@@ -4,6 +4,7 @@ import type { Category } from '@/types'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { WizardFields } from './types'
+import { Location } from '@/types/campaign';
 
 const SELECT_CLASS =
   'border-input bg-background h-8 w-full rounded-lg border px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50'
@@ -12,10 +13,11 @@ interface StepBasicsProps {
   fields: WizardFields
   errors: Partial<Record<keyof WizardFields, string>>
   categories: Category[]
+  locations: Location[]
   onChange: (patch: Partial<WizardFields>) => void
 }
 
-export function StepBasics({ fields, errors, categories, onChange }: StepBasicsProps) {
+export function StepBasics({ fields, errors, categories, locations, onChange }: StepBasicsProps) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
@@ -31,25 +33,6 @@ export function StepBasics({ fields, errors, categories, onChange }: StepBasicsP
         />
         {errors.title && <span className="text-destructive text-xs">{errors.title}</span>}
       </div>
-
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="summary">
-          Resumen <span className="text-destructive">*</span>
-        </Label>
-        <textarea
-          id="summary"
-          value={fields.summary}
-          onChange={(e) => onChange({ summary: e.target.value })}
-          maxLength={240}
-          rows={2}
-          className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-lg border px-2.5 py-1.5 text-sm outline-none focus-visible:ring-3"
-        />
-        <p className="text-muted-foreground text-xs">
-          {fields.summary.length}/240 — descripción breve para listas y previews.
-        </p>
-        {errors.summary && <span className="text-destructive text-xs">{errors.summary}</span>}
-      </div>
-
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="category">
@@ -73,16 +56,6 @@ export function StepBasics({ fields, errors, categories, onChange }: StepBasicsP
             <span className="text-destructive text-xs">{errors.categoryId}</span>
           )}
         </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="tags">Tags</Label>
-          <Input
-            id="tags"
-            value={fields.tags}
-            onChange={(e) => onChange({ tags: e.target.value })}
-            placeholder="separados por coma"
-          />
-        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -90,13 +63,21 @@ export function StepBasics({ fields, errors, categories, onChange }: StepBasicsP
           <Label htmlFor="country">
             País <span className="text-destructive">*</span>
           </Label>
-          <Input
+          <select
             id="country"
-            value={fields.country}
-            onChange={(e) => onChange({ country: e.target.value })}
-            aria-invalid={!!errors.country}
-          />
-          {errors.country && <span className="text-destructive text-xs">{errors.country}</span>}
+            className={SELECT_CLASS}
+            value={fields.locationId}
+            onChange={(e) => onChange({ locationId: e.target.value })}
+            aria-invalid={!!errors.locationId}>
+
+            <option value="">Selecciona…</option>
+            {locations.map((loc) => (
+              <option key={loc.id} value={loc.id}>
+                {loc.country}
+              </option>
+            ))}
+          </select>
+          {errors.locationId && <span className="text-destructive text-xs">{errors.locationId}</span>}
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="city">Ciudad</Label>

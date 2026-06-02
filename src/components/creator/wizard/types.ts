@@ -1,21 +1,14 @@
-import type { GoalType } from '@/types'
-
 export interface WizardFields {
   title: string
-  summary: string
   description: string
   categoryId: string
+  locationId: string
   city: string
-  country: string
-  tags: string
-  goalType: GoalType
+  isFlexibleGoal: boolean
   goalAmount: string
   durationDays: number
-  coverImageUrl: string
-  gallery: string
-  videoUrl: string
+  deadline: string
 }
-
 export interface WizardRewardDraft {
   id?: string
   title: string

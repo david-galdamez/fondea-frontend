@@ -3,9 +3,9 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { ArrowRight, Banknote, CalendarClock, Megaphone, Plus, Sparkles, Users } from 'lucide-react'
-import type { Campaign, Withdrawal } from '@/types'
+import type { Withdrawal } from '@/types'
 import { campaignsService, withdrawalsService } from '@/lib/api'
-import { addMoney, zeroMoney } from '@/lib/money'
+import { addMoney, money, zeroMoney } from '@/lib/money'
 import { formatShortDate } from '@/lib/dates'
 import { useSession } from '@/components/providers/session-provider'
 import { Button } from '@/components/ui/button'
@@ -15,9 +15,10 @@ import { PageSkeleton } from '@/components/common/page-skeleton'
 import { MoneyDisplay } from '@/components/common/money-display'
 import { StatusBadge } from '@/components/campaigns/status-badge'
 import { CampaignProgress } from '@/components/campaigns/campaign-progress'
+import { MyCampaignDto } from '@/lib/api/campaigns.service';
 
 interface DashboardData {
-  campaigns: Campaign[]
+  campaigns: MyCampaignDto[]
   withdrawals: Withdrawal[]
   totalRaised: ReturnType<typeof zeroMoney>
   activeCount: number
@@ -39,17 +40,17 @@ export function CreatorDashboard() {
     if (!userId) return
     let cancelled = false
 
-    Promise.all([campaignsService.getByCreator(userId), withdrawalsService.listByCreator(userId)])
+    Promise.all([campaignsService.getMine(), withdrawalsService.listByCreator(userId)])
       .then(([campaigns, withdrawals]) => {
         if (cancelled) return
-        const totalRaised = campaigns.reduce((acc, c) => addMoney(acc, c.raised), zeroMoney())
+        const totalRaised = campaigns.reduce((acc, c) => addMoney(acc, money(Math.floor(c.totalPledged * 100))), zeroMoney())
         setData({
           campaigns,
           withdrawals,
           totalRaised,
-          activeCount: campaigns.filter((c) => c.status === 'active').length,
-          pendingReviewCount: campaigns.filter((c) => c.status === 'pending_review').length,
-          successfulCount: campaigns.filter((c) => c.status === 'successful').length,
+          activeCount: campaigns.filter((c) => c.status === 'ACTIVE').length,
+          pendingReviewCount: campaigns.filter((c) => c.status === 'PENDING_REVIEW').length,
+          successfulCount: campaigns.filter((c) => c.status === 'SUCCESSFUL').length,
         })
         setError(false)
         setLoading(false)
@@ -73,16 +74,16 @@ export function CreatorDashboard() {
   }
 
   const activeCampaigns = data.campaigns
-    .filter((c) => c.status === 'active')
-    .sort((a, b) => a.endDate.localeCompare(b.endDate))
+    .filter((c) => c.status === 'ACTIVE')
+    .sort((a, b) => a.deadline.localeCompare(b.deadline))
     .slice(0, 3)
 
   const successfulPending = data.campaigns.filter((c) => {
-    if (c.status !== 'successful') return false
+    if (c.status !== 'SUCCESSFUL') return false
     const withdrawn = data.withdrawals
       .filter((w) => w.campaignId === c.id)
       .reduce((acc, w) => acc + w.gross.amount, 0)
-    return withdrawn < c.raised.amount
+    return withdrawn < c.totalPledged
   })
 
   return (
@@ -138,15 +139,15 @@ export function CreatorDashboard() {
                     <p className="truncate text-sm font-medium">{c.title}</p>
                     <p className="text-muted-foreground inline-flex items-center gap-1 text-xs">
                       <CalendarClock className="size-3" aria-hidden="true" />
-                      Cierra el {formatShortDate(c.endDate)}
+                      Cierra el {formatShortDate(c.deadline)}
                     </p>
                   </div>
                   <StatusBadge status={c.status} />
                 </div>
                 <CampaignProgress
-                  raised={c.raised}
-                  goal={c.goal}
-                  backersCount={c.backersCount}
+                  raised={money(Math.floor(c.totalPledged * 100))}
+                  goal={money(Math.floor(c.goalAmount * 100))}
+                  backersCount={c.pledgeCount}
                   size="sm"
                 />
               </Link>
@@ -173,7 +174,7 @@ export function CreatorDashboard() {
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{c.title}</p>
                   <p className="text-muted-foreground text-xs">
-                    Recaudado <MoneyDisplay value={c.raised} className="text-foreground" />
+                    Recaudado <MoneyDisplay value={money(Math.floor(c.totalPledged * 100))} className="text-foreground" />
                   </p>
                 </div>
                 <Button render={<Link href="/creador/retiros" />} variant="outline" size="sm">
