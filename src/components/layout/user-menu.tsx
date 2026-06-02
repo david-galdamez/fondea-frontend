@@ -24,24 +24,23 @@ interface UserMenuProps {
 }
 
 const ROLE_ICON: Record<Role, LucideIcon> = {
-  admin: ShieldCheck,
-  creator: Megaphone,
-  backer: LayoutDashboard,
+  ADMIN: ShieldCheck,
+  CREATOR: Megaphone,
+  SPONSOR: LayoutDashboard,
 }
 
-const ROLE_ORDER: Role[] = ['admin', 'creator', 'backer']
+const ROLE_ORDER: Role[] = ['ADMIN', 'CREATOR', 'SPONSOR']
 
 function activeRoleFromPath(pathname: string): Role | null {
-  if (pathname.startsWith('/admin')) return 'admin'
-  if (pathname.startsWith('/creador')) return 'creator'
-  if (pathname.startsWith('/dashboard')) return 'backer'
+  if (pathname.startsWith('/admin')) return 'ADMIN'
+  if (pathname.startsWith('/creador')) return 'CREATOR'
+  if (pathname.startsWith('/dashboard')) return 'SPONSOR'
   return null
 }
 
 export function UserMenu({ user, onLogout }: UserMenuProps) {
   const pathname = usePathname()
   const activeRole = activeRoleFromPath(pathname)
-  const sortedRoles = ROLE_ORDER.filter((r) => user.roles.includes(r))
 
   return (
     <DropdownMenu>
@@ -54,7 +53,7 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
       />
       <DropdownMenuContent align="end" className="min-w-60">
         <div className="flex items-center gap-2 px-1.5 py-1.5">
-          <UserAvatar user={user} size="md" />
+          {/* <UserAvatar user={user} size="md" /> */}
           <div className="flex min-w-0 flex-col">
             <span className="truncate text-sm font-medium">{user.name}</span>
             <span className="text-muted-foreground truncate text-xs">{user.email}</span>
@@ -62,11 +61,11 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
         </div>
         <DropdownMenuSeparator />
 
-        {sortedRoles.length > 0 && (
+        {ROLE_ORDER.length > 0 && (
           <>
             <DropdownMenuGroup>
               <DropdownMenuLabel>Mis paneles</DropdownMenuLabel>
-              {sortedRoles.map((role) => {
+              {ROLE_ORDER.map((role) => {
                 const Icon = ROLE_ICON[role]
                 const isActive = activeRole === role
                 return (

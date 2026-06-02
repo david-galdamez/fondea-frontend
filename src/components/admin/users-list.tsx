@@ -16,15 +16,15 @@ const SELECT_CLASS =
 
 const ROLE_OPTIONS: { value: Role | ''; label: string }[] = [
   { value: '', label: 'Todos' },
-  { value: 'admin', label: 'Administradores' },
-  { value: 'creator', label: 'Creadores' },
-  { value: 'backer', label: 'Patrocinadores' },
+  { value: 'ADMIN', label: 'Administradores' },
+  { value: 'CREATOR', label: 'Creadores' },
+  { value: 'SPONSOR', label: 'Patrocinadores' },
 ]
 
 const ROLE_CLASSES: Record<Role, string> = {
-  admin: 'bg-purple-100 text-purple-900 dark:bg-purple-950/40 dark:text-purple-200',
-  creator: 'bg-blue-100 text-blue-900 dark:bg-blue-950/40 dark:text-blue-200',
-  backer: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200',
+  ADMIN: 'bg-purple-100 text-purple-900 dark:bg-purple-950/40 dark:text-purple-200',
+  CREATOR: 'bg-blue-100 text-blue-900 dark:bg-blue-950/40 dark:text-blue-200',
+  SPONSOR: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200',
 }
 
 export function UsersList() {
@@ -49,15 +49,14 @@ export function UsersList() {
         setError(true)
         setLoading(false)
       })
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [retryKey])
 
   const visible = useMemo(() => {
     if (!users) return []
-    const filtered = roleFilter ? users.filter((u) => u.roles.includes(roleFilter)) : users
-    return [...filtered].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    // ← role en lugar de roles.includes
+    const filtered = roleFilter ? users.filter((u) => u.role === roleFilter) : users
+    return filtered;
   }, [users, roleFilter])
 
   return (
@@ -101,33 +100,31 @@ export function UsersList() {
               className="border-border bg-card flex items-center gap-3 rounded-lg border p-4"
             >
               <div className="bg-muted text-muted-foreground grid size-10 shrink-0 place-items-center rounded-full">
-                {u.avatarUrl ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={u.avatarUrl}
-                    alt=""
-                    className="h-full w-full rounded-full object-cover"
-                  />
-                ) : (
-                  <span className="text-xs font-semibold">{initials(u.name)}</span>
-                )}
+                {/* {u.avatarUrl ? ( */}
+                {/*   <img */}
+                {/*     src={u.avatarUrl} */}
+                {/*     alt="" */}
+                {/*     className="h-full w-full rounded-full object-cover" */}
+                {/*   /> */}
+                {/* ) : ( */}
+                {/*   <span className="text-xs font-semibold">{initials(u.name)}</span> */}
+                {/* )} */}
               </div>
+
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <p className="truncate text-sm font-medium">{u.name}</p>
                 <p className="text-muted-foreground truncate text-xs">{u.email}</p>
               </div>
-              <div className="flex flex-wrap items-center gap-1">
-                {u.roles.map((r) => (
-                  <span
-                    key={r}
-                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ROLE_CLASSES[r]}`}
-                  >
-                    {ROLE_LABEL[r]}
-                  </span>
-                ))}
-              </div>
+
+              {/* ← un solo badge en lugar de u.roles.map */}
+              <span
+                className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${ROLE_CLASSES[u.role]}`}
+              >
+                {ROLE_LABEL[u.role]}
+              </span>
+
               <span className="text-muted-foreground hidden text-xs sm:inline">
-                Desde {formatShortDate(u.createdAt)}
+                {/* Desde {formatShortDate(u.createdAt)} */}
               </span>
             </article>
           ))}
@@ -136,8 +133,8 @@ export function UsersList() {
     </div>
   )
 }
-
 function initials(name: string): string {
+
   const parts = name.trim().split(/\s+/)
   return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase()
 }

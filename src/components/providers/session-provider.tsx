@@ -10,7 +10,8 @@ interface SessionContextValue {
   user: User | null
   isLoading: boolean
   signIn: (input: LoginInput) => Promise<Session>
-  signUp: (input: RegisterInput) => Promise<Session>
+  signUpCreator: (input: RegisterInput) => Promise<Session>
+  signUpSponsor: (input: RegisterInput) => Promise<Session>
   signOut: () => Promise<void>
   refresh: () => Promise<void>
   hasRole: (role: Role) => boolean
@@ -52,8 +53,14 @@ export function SessionProvider({ children }: SessionProviderProps) {
     return s
   }, [])
 
-  const signUp = useCallback(async (input: RegisterInput) => {
-    const s = await authService.register(input)
+  const signUpCreator = useCallback(async (input: RegisterInput) => {
+    const s = await authService.registerCreator(input)
+    setSession(s)
+    return s
+  }, [])
+
+  const signUpSponsor = useCallback(async (input: RegisterInput) => {
+    const s = await authService.registerSponsor(input)
     setSession(s)
     return s
   }, [])
@@ -69,12 +76,13 @@ export function SessionProvider({ children }: SessionProviderProps) {
       user: session?.user ?? null,
       isLoading,
       signIn,
-      signUp,
+      signUpCreator,
+      signUpSponsor,
       signOut,
       refresh,
-      hasRole: (role: Role) => !!session?.user.roles.includes(role),
+      hasRole: (role: Role) => session?.user.role === role
     }),
-    [session, isLoading, signIn, signUp, signOut, refresh]
+    [session, isLoading, signIn, signUpCreator, signUpSponsor, signOut, refresh]
   )
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

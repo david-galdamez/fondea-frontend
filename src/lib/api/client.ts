@@ -153,16 +153,3 @@ export function readSessionRaw<T>(): T | null {
     return null
   }
 }
-
-export function writeSessionRaw<T>(value: T | null): void {
-  if (typeof window === 'undefined') return
-  try {
-    if (value === null) {
-      window.localStorage.removeItem(SESSION_KEY)
-    } else {
-      window.localStorage.setItem(SESSION_KEY, JSON.stringify(value))
-    }
-  } catch {
-    // ignore
-  }
-}
