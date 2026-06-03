@@ -20,12 +20,10 @@ const SELECT_CLASS =
 const STATUS_OPTIONS: { value: CampaignStatus | ''; label: string }[] = [
   { value: '', label: 'Todos' },
   { value: 'DRAFT', label: 'Borrador' },
-  { value: 'PENDING_REVIEW', label: 'En revisión' },
-  { value: 'REJECTED', label: 'Rechazadas' },
+  { value: 'UNDER_REVIEW', label: 'En revisión' },
   { value: 'ACTIVE', label: 'Activas' },
   { value: 'SUCCESSFUL', label: 'Exitosas' },
   { value: 'FAILED', label: 'No alcanzaron meta' },
-  { value: 'CANCELLED', label: 'Canceladas' },
 ]
 
 export function CreatorCampaignsList() {

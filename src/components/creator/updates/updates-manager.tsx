@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { MessageSquare, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Campaign, CampaignUpdate } from '@/types'
 import { ApiError, campaignsService, updatesService } from '@/lib/api'
 import { formatLongDate } from '@/lib/dates'
 import { Button } from '@/components/ui/button'
@@ -12,14 +11,16 @@ import { ConfirmDialog, useConfirmDialog } from '@/components/common/confirm-dia
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
 import { PageSkeleton } from '@/components/common/page-skeleton'
+import { CampaignDetailDto } from '@/lib/api/campaigns.service';
+import { CampaignUpdateDto, campaignUpdatesService } from '@/lib/api/campaigns-updates.service';
 
 interface UpdatesManagerProps {
   campaignId: string
 }
 
 interface Data {
-  campaign: Campaign
-  updates: CampaignUpdate[]
+  campaign: CampaignDetailDto
+  updates: CampaignUpdateDto[]
 }
 
 export function UpdatesManager({ campaignId }: UpdatesManagerProps) {
@@ -31,7 +32,7 @@ export function UpdatesManager({ campaignId }: UpdatesManagerProps) {
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([campaignsService.getById(campaignId), updatesService.listByCampaign(campaignId)])
+    Promise.all([campaignsService.getById(campaignId), campaignUpdatesService.list(campaignId)])
       .then(([campaign, updates]) => {
         if (cancelled) return
         setData({ campaign, updates })
@@ -50,7 +51,7 @@ export function UpdatesManager({ campaignId }: UpdatesManagerProps) {
 
   async function removeUpdate(id: string) {
     try {
-      await updatesService.remove(id)
+      await campaignUpdatesService.delete(campaignId, id)
       setData((prev) =>
         prev ? { ...prev, updates: prev.updates.filter((u) => u.id !== id) } : prev
       )
@@ -110,8 +111,8 @@ export function UpdatesManager({ campaignId }: UpdatesManagerProps) {
                 <div className="flex flex-col gap-0.5">
                   <h3 className="text-sm font-semibold">{u.title}</h3>
                   <p className="text-muted-foreground text-xs">
-                    {formatLongDate(u.publishedAt)} ·{' '}
-                    {u.visibility === 'public' ? 'Pública' : 'Solo patrocinadores'}
+                    {formatLongDate(u.createdAt)} ·{' '}
+                    {u.visibility === 'PUBLIC' ? 'Pública' : 'Solo patrocinadores'}
                   </p>
                 </div>
                 <Button

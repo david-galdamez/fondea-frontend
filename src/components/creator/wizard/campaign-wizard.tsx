@@ -307,8 +307,7 @@ export function CampaignWizard({ initial, initialStep = 1 }: CampaignWizardProps
         {step === 4 && (
           <StepRewards rewards={rewards} disabled={rewardsDisabled} onChange={setRewards} />
         )}
-        {step === 5 && <StepFAQs faqs={faqs} disabled={true} onChange={() => { }} />}
-        {step === 6 && (
+        {step === 5 && (
           <StepReview fields={fields} rewards={rewards} faqs={faqs} categories={categories} />
         )}
       </section>

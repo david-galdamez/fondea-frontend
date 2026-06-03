@@ -49,7 +49,7 @@ export function CreatorDashboard() {
           withdrawals,
           totalRaised,
           activeCount: campaigns.filter((c) => c.status === 'ACTIVE').length,
-          pendingReviewCount: campaigns.filter((c) => c.status === 'PENDING_REVIEW').length,
+          pendingReviewCount: campaigns.filter((c) => c.status === 'UNDER_REVIEW').length,
           successfulCount: campaigns.filter((c) => c.status === 'SUCCESSFUL').length,
         })
         setError(false)

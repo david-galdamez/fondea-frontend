@@ -2,12 +2,10 @@ import { api } from "../client";
 
 export type CampaignStatus =
   | 'DRAFT'
-  | 'PENDING_REVIEW'
+  | 'UNDER_REVIEW'
   | 'ACTIVE'
   | 'SUCCESSFUL'
   | 'FAILED'
-  | 'CANCELLED'
-  | 'REJECTED'
 
 export interface CampaignCreatedDto {
   id: string

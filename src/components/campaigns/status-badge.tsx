@@ -1,4 +1,4 @@
-import type { CampaignStatus } from '@/types'
+import { CampaignStatus } from '@/lib/api/campaigns.service';
 import { cn } from '@/lib/utils'
 
 interface StatusBadgeProps {
@@ -23,7 +23,6 @@ const STATUS_CLASSES: Record<CampaignStatus, string> = {
 }
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
-  console.log(status);
   return (
     <span
       className={cn(

@@ -12,7 +12,7 @@ interface CreatorCampaignCardProps {
 }
 
 export function CreatorCampaignCard({ campaign }: CreatorCampaignCardProps) {
-  const isEditable = campaign.status === 'DRAFT' || campaign.status === 'REJECTED'
+  const isEditable = campaign.status === 'DRAFT'
   const hasPublicPage =
     campaign.status === 'ACTIVE' ||
     campaign.status === 'SUCCESSFUL' ||
@@ -70,13 +70,15 @@ export function CreatorCampaignCard({ campaign }: CreatorCampaignCardProps) {
           <Users className="size-4" />
           Patrocinadores
         </Button>
-        <Button
-          render={<Link href={`/creador/campanas/${campaign.id}/preguntas`} />}
-          variant="ghost"
-          size="sm"
-        >
-          Preguntas
-        </Button>
+        {hasPublicPage && (
+          <Button
+            render={<Link href={`/creador/campanas/${campaign.id}/preguntas`} />}
+            variant="ghost"
+            size="sm"
+          >
+            Preguntas
+          </Button>
+        )}
         {hasPublicPage && (
           <Button
             render={<Link href={`/campanas/${campaign.id}`} />}
