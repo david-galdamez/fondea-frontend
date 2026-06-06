@@ -42,7 +42,7 @@ function centsToInput(value: number): string {
   return (value / 100).toFixed(2)
 }
 
-export function PledgeFlow({ slug }: PledgeFlowProps) {
+export function PledgeFlow() {
   const router = useRouter()
   const { session, isLoading: sessionLoading } = useSession()
 
@@ -67,7 +67,7 @@ export function PledgeFlow({ slug }: PledgeFlowProps) {
       const redirect = encodeURIComponent(`/campanas/${slug}/apoyar`)
       router.replace(`/auth/login?redirect=${redirect}`)
     }
-  }, [session, sessionLoading, slug, router])
+  }, [session, sessionLoading, router])
 
   // Load campaign + rewards
   useEffect(() => {
@@ -75,7 +75,7 @@ export function PledgeFlow({ slug }: PledgeFlowProps) {
     Promise.all([campaignsService.getBySlug(slug), null])
       .then(async ([c]) => {
         if (cancelled) return c
-        const rs = await rewardsService.listByCampaign(c.id)
+        const rs = await rewardsService.getAvailable(c.id)
         if (cancelled) return c
         setCampaign(c)
         setRewards(rs)

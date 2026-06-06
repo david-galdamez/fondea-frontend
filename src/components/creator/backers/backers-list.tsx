@@ -2,24 +2,24 @@
 
 import { useEffect, useState } from 'react'
 import { Users } from 'lucide-react'
-import type { Campaign, Pledge, User } from '@/types'
-import { campaignsService, pledgesService, usersService } from '@/lib/api'
-import { addMoney, zeroMoney } from '@/lib/money'
+import { campaignsService, pledgesService } from '@/lib/api'
 import { formatShortDate } from '@/lib/dates'
+import { money } from '@/lib/money'
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
 import { MoneyDisplay } from '@/components/common/money-display'
 import { PageSkeleton } from '@/components/common/page-skeleton'
 import { PledgeStatusBadge } from '@/components/pledges/pledge-status-badge'
+import type { CampaignDetailDto } from '@/lib/api/campaigns.service'
+import type { CampaignPledgeDto, PageableResponse } from '@/lib/api/pledges.service'
 
 interface BackersListProps {
   campaignId: string
 }
 
 interface Data {
-  campaign: Campaign
-  pledges: Pledge[]
-  backersById: Map<string, User>
+  campaign: CampaignDetailDto
+  pledges: PageableResponse<CampaignPledgeDto>
 }
 
 export function BackersList({ campaignId }: BackersListProps) {
@@ -30,28 +30,13 @@ export function BackersList({ campaignId }: BackersListProps) {
 
   useEffect(() => {
     let cancelled = false
-    async function load() {
-      const [campaign, paginatedPledges] = await Promise.all([
-        campaignsService.getById(campaignId),
-        pledgesService.listByCampaign(campaignId, 1, 200),
-      ])
-      const nonAnonIds = Array.from(
-        new Set(paginatedPledges.items.filter((p) => !p.isAnonymous).map((p) => p.backerId))
-      )
-      const users = await Promise.all(
-        nonAnonIds.map((id) => usersService.getById(id).catch(() => null))
-      )
-      const backersById = new Map<string, User>()
-      users.forEach((u) => {
-        if (u) backersById.set(u.id, u)
-      })
-      return { campaign, pledges: paginatedPledges.items, backersById }
-    }
-
-    load()
-      .then((d) => {
+    Promise.all([
+      campaignsService.getById(campaignId),
+      pledgesService.listByCampaign(campaignId, 1, 200),
+    ])
+      .then(([campaign, pledges]) => {
         if (cancelled) return
-        setData(d)
+        setData({ campaign, pledges })
         setError(false)
         setLoading(false)
       })
@@ -60,19 +45,14 @@ export function BackersList({ campaignId }: BackersListProps) {
         setError(true)
         setLoading(false)
       })
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [campaignId, retryKey])
 
   if (error) return <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
   if (loading || !data) return <PageSkeleton variant="list" />
 
-  const activePledges = data.pledges.filter(
-    (p) => p.status === 'authorized' || p.status === 'charged'
-  )
-  const totalAmount = activePledges.reduce((acc, p) => addMoney(acc, p.amount), zeroMoney())
-  const anonymousCount = activePledges.filter((p) => p.isAnonymous).length
+  const pledges = data.pledges.content
+  const totalAmount = pledges.reduce((acc, p) => acc + p.amount, 0)
 
   return (
     <div className="flex flex-col gap-6">
@@ -80,12 +60,12 @@ export function BackersList({ campaignId }: BackersListProps) {
         <p className="text-muted-foreground text-xs">{data.campaign.title}</p>
         <h1 className="text-3xl font-semibold tracking-tight">Patrocinadores</h1>
         <p className="text-muted-foreground text-sm">
-          {activePledges.length} apoyos activos por <MoneyDisplay value={totalAmount} />
-          {anonymousCount > 0 && ` · ${anonymousCount} anónimos`}
+          {pledges.length} apoyos activos por{' '}
+          <MoneyDisplay value={money(Math.round(totalAmount * 100))} />
         </p>
       </header>
 
-      {data.pledges.length === 0 ? (
+      {pledges.length === 0 ? (
         <EmptyState
           icon={Users}
           title="Aún no tienes patrocinadores"
@@ -93,28 +73,21 @@ export function BackersList({ campaignId }: BackersListProps) {
         />
       ) : (
         <div className="flex flex-col gap-2">
-          {data.pledges.map((p) => {
-            const backer = p.isAnonymous ? null : (data.backersById.get(p.backerId) ?? null)
-            return (
-              <div
-                key={p.id}
-                className="border-border bg-card flex items-center gap-3 rounded-lg border p-4"
-              >
-                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <p className="truncate text-sm font-medium">
-                    {p.isAnonymous ? 'Apoyo anónimo' : (backer?.name ?? 'Usuario eliminado')}
-                  </p>
-                  <p className="text-muted-foreground text-xs">
-                    {formatShortDate(p.createdAt)}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <MoneyDisplay value={p.amount} className="text-sm font-medium" />
-                  <PledgeStatusBadge status={p.status} />
-                </div>
+          {pledges.map((p) => (
+            <div
+              key={p.id}
+              className="border-border bg-card flex items-center gap-3 rounded-lg border p-4"
+            >
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <p className="truncate text-sm font-medium">{p.sponsorName}</p>
+                <p className="text-muted-foreground text-xs">{formatShortDate(p.createdAt)}</p>
               </div>
-            )
-          })}
+              <div className="flex flex-col items-end gap-1">
+                <MoneyDisplay value={money(Math.round(p.amount * 100))} className="text-sm font-medium" />
+                <PledgeStatusBadge status={p.status} />
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

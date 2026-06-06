@@ -1,197 +1,143 @@
-import type {
-  Campaign,
-  CampaignDraft,
-  CampaignSummary,
-  ID,
-  Paginated,
-  SearchFilters,
-} from '@/types'
-import { DEFAULT_PAGE_SIZE, NEAR_GOAL_THRESHOLD } from '@/lib/constants'
-import { progressRatio, zeroMoney } from '@/lib/money'
-import { generateId, nowISO, paginate, simulateNetwork } from './client'
-import { ForbiddenError, NotFoundError, ValidationError } from './errors'
-import { campaignsStore, usersStore } from './_stores'
+import { api } from "../client";
 
-function toSummary(campaign: Campaign): CampaignSummary {
-  return {
-    id: campaign.id,
-    slug: campaign.slug,
-    title: campaign.title,
-    summary: campaign.summary,
-    coverImageUrl: campaign.coverImageUrl,
-    goal: campaign.goal,
-    raised: campaign.raised,
-    goalType: campaign.goalType,
-    backersCount: campaign.backersCount,
-    endDate: campaign.endDate,
-    status: campaign.status,
-    featured: campaign.featured,
-    categoryId: campaign.categoryId,
-    location: campaign.location,
-    creatorId: campaign.creatorId,
-  }
+export type CampaignStatus =
+  | 'DRAFT'
+  | 'UNDER_REVIEW'
+  | 'ACTIVE'
+  | 'SUCCESSFUL'
+  | 'FAILED'
+
+export interface CampaignCreatedDto {
+  id: string
+  title: string
+  status: CampaignStatus
+  createdAt: string
 }
 
-function matchesText(campaign: Campaign, query: string): boolean {
-  const q = query.toLowerCase()
-  return (
-    campaign.title.toLowerCase().includes(q) ||
-    campaign.summary.toLowerCase().includes(q) ||
-    campaign.tags.some((tag) => tag.toLowerCase().includes(q))
-  )
+export interface CampaignSummaryDto {
+  id: string
+  title: string
+  creatorName: string
+  coverImageUrl: string | null
+  goalAmount: number
+  totalPledged: number
+  pledgeCount: number
+  deadline: string        // LocalDate → "YYYY-MM-DD"
+  categoryName: string
+  locationCity: string
+  locationCountry: string
+  status: CampaignStatus
+  featuredScore: number | null
+  featured: boolean
 }
 
-function applyFilters(items: Campaign[], filters: SearchFilters): Campaign[] {
-  return items.filter((c) => {
-    if (filters.query && !matchesText(c, filters.query)) return false
-    if (filters.categoryId && c.categoryId !== filters.categoryId) return false
-    if (filters.city && c.location.city !== filters.city) return false
-    if (filters.country && c.location.country !== filters.country) return false
-    if (filters.status && filters.status.length > 0 && !filters.status.includes(c.status))
-      return false
-    if (filters.goalType && c.goalType !== filters.goalType) return false
-    return true
-  })
+export interface RewardSummaryDto {
+  id: string
+  title: string
+  description: string
+  minAmount: number
+  estimatedDelivery?: string
+  stock?: number
 }
 
-function applySort(items: Campaign[], sortBy: SearchFilters['sortBy']): Campaign[] {
-  const sorted = [...items]
-  switch (sortBy) {
-    case 'ending_soon':
-      return sorted.sort((a, b) => a.endDate.localeCompare(b.endDate))
-    case 'most_funded':
-      return sorted.sort(
-        (a, b) => progressRatio(b.raised, b.goal) - progressRatio(a.raised, a.goal)
-      )
-    case 'most_backers':
-      return sorted.sort((a, b) => b.backersCount - a.backersCount)
-    case 'featured':
-      return sorted.sort((a, b) => Number(b.featured) - Number(a.featured))
-    case 'recent':
-    default:
-      return sorted.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  }
+export interface FaqDto {
+  question: string
+  answer: string
 }
 
-function isPublic(status: Campaign['status']): boolean {
-  return status === 'active' || status === 'successful' || status === 'failed'
+export interface CampaignDetailDto {
+  id: string
+  title: string
+  description: string
+  creatorName: string
+  creatorId: string
+  goalAmount: number
+  totalPledged: number
+  pledgeCount: number
+  daysLeft: number
+  deadline: string
+  isFlexibleGoal: boolean
+  status: CampaignStatus
+  categoryId: string
+  locationId: string
+  city: string
+  rewards: RewardSummaryDto[]
+  faqs: FaqDto[]
+}
+
+export interface MyCampaignDto {
+  id: string
+  title: string
+  goalAmount: number
+  totalPledged: number
+  pledgeCount: number
+  deadline: string
+  status: CampaignStatus
+  daysLeft: number
+  availableToWithdraw: number | null
+}
+
+export interface CampaignDraftDto {
+  id: string
+  title: string
+  goalAmount: number
+  deadline: string
+  createdAt: string
+}
+
+export interface CampaignSearchParams {
+  categoryId?: string
+  locationId?: string
+  keyword?: string
+}
+
+export interface RegisterCampaignRequest {
+  title: string
+  description: string
+  goalAmount: number
+  isFlexibleGoal: boolean
+  deadline: string        // "YYYY-MM-DD"
+  categoryId: string
+  locationId: string
+  city: string
+  coverImageUrl: string
 }
 
 export const campaignsService = {
-  async list(filters: SearchFilters = {}): Promise<Paginated<CampaignSummary>> {
-    await simulateNetwork()
-    const explicitStatus = filters.status && filters.status.length > 0
-    const all = explicitStatus
-      ? campaignsStore.all()
-      : campaignsStore.filter((c) => isPublic(c.status))
-    const filtered = applyFilters(all, filters)
-    const sorted = applySort(filtered, filters.sortBy)
-    const summaries = sorted.map(toSummary)
-    return paginate(summaries, filters.page ?? 1, filters.pageSize ?? DEFAULT_PAGE_SIZE)
+  create(data: RegisterCampaignRequest): Promise<CampaignCreatedDto> {
+    return api.post<CampaignCreatedDto>('/api/campaigns', data)
   },
 
-  async getById(id: ID): Promise<Campaign> {
-    await simulateNetwork()
-    const c = campaignsStore.findById(id)
-    if (!c) throw new NotFoundError('Campaña')
-    return c
+  search(params: CampaignSearchParams = {}): Promise<CampaignSummaryDto[]> {
+    const query = new URLSearchParams()
+    if (params.categoryId) query.set('categoryId', params.categoryId)
+    if (params.locationId) query.set('locationId', params.locationId)
+    if (params.keyword) query.set('keyword', params.keyword)
+    const qs = query.toString()
+    return api.get<CampaignSummaryDto[]>(`/api/campaigns/search${qs ? `?${qs}` : ''}`)
   },
 
-  async getBySlug(slug: string): Promise<Campaign> {
-    await simulateNetwork()
-    const c = campaignsStore.find((x) => x.slug === slug)
-    if (!c) throw new NotFoundError('Campaña')
-    return c
+  getFeatured(): Promise<CampaignSummaryDto[]> {
+    return api.get<CampaignSummaryDto[]>('/api/campaigns/featured')
   },
 
-  async getFeatured(limit = 6): Promise<CampaignSummary[]> {
-    await simulateNetwork()
-    return campaignsStore
-      .filter((c) => c.featured && isPublic(c.status))
-      .slice(0, limit)
-      .map(toSummary)
+  getMine(): Promise<MyCampaignDto[]> {
+    return api.get<MyCampaignDto[]>('/api/campaigns/mine')
   },
 
-  async getNearGoal(threshold = NEAR_GOAL_THRESHOLD): Promise<CampaignSummary[]> {
-    await simulateNetwork()
-    return campaignsStore
-      .filter((c) => c.status === 'active' && progressRatio(c.raised, c.goal) >= threshold)
-      .map(toSummary)
+  getDrafts(): Promise<CampaignDraftDto[]> {
+    return api.get<CampaignDraftDto[]>('/api/campaigns/drafts')
   },
 
-  async getByCreator(creatorId: ID): Promise<Campaign[]> {
-    await simulateNetwork()
-    return campaignsStore.filter((c) => c.creatorId === creatorId)
+  getById(id: string): Promise<CampaignDetailDto> {
+    return api.get<CampaignDetailDto>(`/api/campaigns/${id}`)
   },
 
-  async create(creatorId: ID, draft: CampaignDraft): Promise<Campaign> {
-    await simulateNetwork()
-    const creator = usersStore.findById(creatorId)
-    if (!creator) throw new NotFoundError('Usuario')
-    if (creator.roles.includes('admin')) {
-      throw new ForbiddenError('Los administradores no pueden crear campañas')
-    }
-    if (!draft.title.trim()) {
-      throw new ValidationError('El título es obligatorio', { title: 'Requerido' })
-    }
-    if (draft.goal.amount <= 0) {
-      throw new ValidationError('La meta debe ser mayor a cero', { goal: 'Inválida' })
-    }
-    if (!creator.roles.includes('creator')) {
-      usersStore.update(creatorId, {
-        roles: [...creator.roles, 'creator'],
-        isNewCreator: true,
-      })
-    }
-    const created: Campaign = {
-      ...draft,
-      id: generateId(),
-      slug: '',
-      creatorId,
-      raised: zeroMoney(draft.goal.currency),
-      backersCount: 0,
-      status: 'draft',
-      featured: false,
-      startDate: '',
-      endDate: '',
-      createdAt: nowISO(),
-      updatedAt: nowISO(),
-    }
-    return campaignsStore.insert(created)
+  update(id: string, data: RegisterCampaignRequest): Promise<CampaignCreatedDto> {
+    return api.put<CampaignCreatedDto>(`/api/campaigns/${id}`, data)
   },
 
-  async update(id: ID, patch: Partial<Campaign>): Promise<Campaign> {
-    await simulateNetwork()
-    const existing = campaignsStore.findById(id)
-    if (!existing) throw new NotFoundError('Campaña')
-    if (existing.status !== 'draft' && existing.status !== 'rejected') {
-      throw new ForbiddenError('Solo se pueden editar campañas en borrador o rechazadas')
-    }
-    const updated = campaignsStore.update(id, { ...patch, updatedAt: nowISO() })
-    if (!updated) throw new NotFoundError('Campaña')
-    return updated
-  },
-
-  async submitForReview(id: ID): Promise<Campaign> {
-    await simulateNetwork()
-    const existing = campaignsStore.findById(id)
-    if (!existing) throw new NotFoundError('Campaña')
-    if (existing.status !== 'draft' && existing.status !== 'rejected') {
-      throw new ForbiddenError('Solo borradores o campañas rechazadas pueden enviarse a revisión')
-    }
-    const updated = campaignsStore.update(id, {
-      status: 'pending_review',
-      rejectionReason: undefined,
-      updatedAt: nowISO(),
-    })
-    if (!updated) throw new NotFoundError('Campaña')
-    return updated
-  },
-
-  async cancel(id: ID): Promise<Campaign> {
-    await simulateNetwork()
-    const updated = campaignsStore.update(id, { status: 'cancelled', updatedAt: nowISO() })
-    if (!updated) throw new NotFoundError('Campaña')
-    return updated
+  submitForReview(id: string): Promise<void> {
+    return api.post<void>(`/api/campaigns/${id}/submit`, {})
   },
 }

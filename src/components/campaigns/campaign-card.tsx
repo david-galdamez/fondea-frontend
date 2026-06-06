@@ -1,23 +1,24 @@
 import Link from 'next/link'
 import { Star } from 'lucide-react'
-import type { CampaignSummary } from '@/types'
 import { cn } from '@/lib/utils'
 import { CampaignProgress } from './campaign-progress'
 import { CountdownTimer } from './countdown-timer'
 import { LocationBadge } from './location-badge'
 import { StatusBadge } from './status-badge'
+import { CampaignSummaryDto } from '@/lib/api/campaigns.service';
+import { money } from '@/lib/money';
 
 interface CampaignCardProps {
-  campaign: CampaignSummary
+  campaign: CampaignSummaryDto
   className?: string
 }
 
 export function CampaignCard({ campaign, className }: CampaignCardProps) {
-  const isActive = campaign.status === 'active'
+  const isActive = campaign.status === 'ACTIVE'
 
   return (
     <Link
-      href={`/campanas/${campaign.slug}`}
+      href={`/campanas/${campaign.id}`}
       className={cn(
         'group border-border bg-card hover:border-foreground/20 focus-visible:ring-ring relative flex flex-col overflow-hidden rounded-lg border transition-colors focus-visible:ring-2 focus-visible:outline-none',
         className
@@ -53,19 +54,19 @@ export function CampaignCard({ campaign, className }: CampaignCardProps) {
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div className="flex flex-col gap-1">
           <h3 className="line-clamp-2 text-base font-semibold tracking-tight">{campaign.title}</h3>
-          <p className="text-muted-foreground line-clamp-2 text-sm">{campaign.summary}</p>
+          {/* <p className="text-muted-foreground line-clamp-2 text-sm">{campaign.description}</p> */}
         </div>
 
         <CampaignProgress
-          raised={campaign.raised}
-          goal={campaign.goal}
-          backersCount={campaign.backersCount}
+          raised={money(Math.round(campaign.totalPledged * 100))}
+          goal={money(Math.round(campaign.goalAmount * 100))}
+          backersCount={campaign.pledgeCount}
           size="sm"
         />
 
         <div className="mt-auto flex items-center justify-between gap-2">
-          <LocationBadge location={campaign.location} />
-          <CountdownTimer endDate={campaign.endDate} status={campaign.status} />
+          <LocationBadge city={campaign.locationCity} country={campaign.locationCountry} />
+          <CountdownTimer endDate={campaign.deadline} status={campaign.status} />
         </div>
       </div>
     </Link>

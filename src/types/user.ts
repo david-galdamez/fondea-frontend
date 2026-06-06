@@ -1,4 +1,4 @@
-import type { ISODateString, Money } from './common'
+import type { ISODateString } from './common'
 
 export type Role = 'ADMIN' | 'CREATOR' | 'SPONSOR'
 
@@ -12,11 +12,12 @@ export interface User {
   email: string
   name: string
   role: Role
+  createdAt: string
+  city?: string
+  country?: string
+  bio?: string
   isNewCreator?: boolean
-  totalRaised?: Money
-  campaignsCount?: number
-  pledgesCount?: number
-  totalPledged?: Money
+  isVerified?: boolean
 }
 
 export interface Session {

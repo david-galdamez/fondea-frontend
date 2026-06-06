@@ -1,45 +1,55 @@
-import type { ID, Reward } from '@/types'
-import { generateId, simulateNetwork } from './client'
-import { NotFoundError, ValidationError } from './errors'
-import { rewardsStore } from './_stores'
+import { api } from "../client";
 
-export type RewardInput = Omit<Reward, 'id' | 'claimed'>
+export interface RewardCreatedDto {
+  id: string
+  title: string
+  minAmount: number
+  stock: number | null
+  estimatedDelivery: string | null // "YYYY-MM-DD"
+}
+
+export interface RewardSummaryDto {
+  id: string
+  title: string
+  description: string
+  minAmount: number
+  stock: number | null
+  estimatedDelivery: string | null
+}
+
+export interface RewardDetailDto {
+  id: string
+  title: string
+  description: string
+  minAmount: number
+  stockOriginal: number | null
+  stockRemaining: number | null
+  pledgeCount: number
+  estimatedDelivery: string | null
+}
+
+export interface CreateRewardRequest {
+  title: string
+  description?: string
+  minAmount: number
+  stock?: number
+  estimatedDelivery?: string // "YYYY-MM-DD"
+}
 
 export const rewardsService = {
-  async listByCampaign(campaignId: ID): Promise<Reward[]> {
-    await simulateNetwork()
-    return rewardsStore.filter((r) => r.campaignId === campaignId).sort((a, b) => a.order - b.order)
+  create(campaignId: string, data: CreateRewardRequest): Promise<RewardCreatedDto> {
+    return api.post<RewardCreatedDto>(`/api/campaigns/${campaignId}/rewards`, data)
   },
 
-  async getById(id: ID): Promise<Reward> {
-    await simulateNetwork()
-    const r = rewardsStore.findById(id)
-    if (!r) throw new NotFoundError('Recompensa')
-    return r
+  getAvailable(campaignId: string): Promise<RewardSummaryDto[]> {
+    return api.get<RewardSummaryDto[]>(`/api/campaigns/${campaignId}/rewards`)
   },
 
-  async create(input: RewardInput): Promise<Reward> {
-    await simulateNetwork()
-    if (!input.title.trim()) {
-      throw new ValidationError('El título es obligatorio', { title: 'Requerido' })
-    }
-    if (input.minAmount.amount <= 0) {
-      throw new ValidationError('El monto mínimo debe ser mayor a cero', { minAmount: 'Inválido' })
-    }
-    const reward: Reward = { ...input, id: generateId(), claimed: 0 }
-    return rewardsStore.insert(reward)
+  getManage(campaignId: string): Promise<RewardDetailDto[]> {
+    return api.get<RewardDetailDto[]>(`/api/campaigns/${campaignId}/rewards/manage`)
   },
 
-  async update(id: ID, patch: Partial<RewardInput>): Promise<Reward> {
-    await simulateNetwork()
-    const updated = rewardsStore.update(id, patch)
-    if (!updated) throw new NotFoundError('Recompensa')
-    return updated
-  },
-
-  async remove(id: ID): Promise<void> {
-    await simulateNetwork()
-    const ok = rewardsStore.remove(id)
-    if (!ok) throw new NotFoundError('Recompensa')
+  remove(campaignId: string, rewardId: string): Promise<void> {
+    return api.delete<void>(`/api/campaigns/${campaignId}/rewards/${rewardId}`)
   },
 }

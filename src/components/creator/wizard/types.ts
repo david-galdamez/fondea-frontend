@@ -1,21 +1,14 @@
-import type { GoalType } from '@/types'
-
 export interface WizardFields {
   title: string
-  summary: string
   description: string
   categoryId: string
+  locationId: string
   city: string
-  country: string
-  tags: string
-  goalType: GoalType
+  isFlexibleGoal: boolean
   goalAmount: string
   durationDays: number
-  coverImageUrl: string
-  gallery: string
-  videoUrl: string
+  deadline: string
 }
-
 export interface WizardRewardDraft {
   id?: string
   title: string
@@ -35,8 +28,7 @@ export const STEP_LABELS: Record<number, string> = {
   2: 'Meta',
   3: 'Descripción',
   4: 'Recompensas',
-  5: 'Preguntas',
-  6: 'Revisión',
+  5: 'Revisión',
 }
 
-export const TOTAL_STEPS = 6
+export const TOTAL_STEPS = 5

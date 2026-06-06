@@ -5,13 +5,14 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, Send } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import type { Campaign, UpdateVisibility } from '@/types'
 import { ApiError, campaignsService, updatesService } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ErrorState } from '@/components/common/error-state'
 import { PageSkeleton } from '@/components/common/page-skeleton'
+import { CampaignDetailDto } from '@/lib/api/campaigns.service';
+import { campaignUpdatesService, UpdateVisibility } from '@/lib/api/campaigns-updates.service';
 
 interface NewUpdateFormProps {
   campaignId: string
@@ -21,12 +22,12 @@ const RADIO_CLASS = 'h-4 w-4'
 
 export function NewUpdateForm({ campaignId }: NewUpdateFormProps) {
   const router = useRouter()
-  const [campaign, setCampaign] = useState<Campaign | null>(null)
+  const [campaign, setCampaign] = useState<CampaignDetailDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
-  const [visibility, setVisibility] = useState<UpdateVisibility>('public')
+  const [visibility, setVisibility] = useState<UpdateVisibility>('PUBLIC')
   const [busy, setBusy] = useState(false)
   const [errors, setErrors] = useState<{ title?: string; body?: string }>({})
 
@@ -52,7 +53,7 @@ export function NewUpdateForm({ campaignId }: NewUpdateFormProps) {
     }
   }, [campaignId])
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     const errs: { title?: string; body?: string } = {}
     if (!title.trim()) errs.title = 'Requerido'
@@ -62,7 +63,7 @@ export function NewUpdateForm({ campaignId }: NewUpdateFormProps) {
 
     setBusy(true)
     try {
-      await updatesService.create(campaignId, { title: title.trim(), body, visibility })
+      await campaignUpdatesService.publish(campaignId, { title: title.trim(), body, visibility })
       toast.success('Actualización publicada')
       router.push(`/creador/campanas/${campaignId}/actualizaciones`)
     } catch (err) {
@@ -121,8 +122,8 @@ export function NewUpdateForm({ campaignId }: NewUpdateFormProps) {
               type="radio"
               name="visibility"
               value="public"
-              checked={visibility === 'public'}
-              onChange={() => setVisibility('public')}
+              checked={visibility === 'PUBLIC'}
+              onChange={() => setVisibility('PUBLIC')}
               className={RADIO_CLASS}
             />
             Pública — visible para cualquiera en la página de la campaña
@@ -132,8 +133,8 @@ export function NewUpdateForm({ campaignId }: NewUpdateFormProps) {
               type="radio"
               name="visibility"
               value="backers_only"
-              checked={visibility === 'backers_only'}
-              onChange={() => setVisibility('backers_only')}
+              checked={visibility === 'SPONSORS'}
+              onChange={() => setVisibility('SPONSORS')}
               className={RADIO_CLASS}
             />
             Solo patrocinadores — visible para quienes apoyaron la campaña

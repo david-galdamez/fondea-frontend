@@ -1,184 +1,160 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { HelpCircle, Plus, Save, Trash2 } from 'lucide-react'
+import { CheckCircle2, Clock, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Campaign } from '@/types'
-import { ApiError, campaignsService, faqsService } from '@/lib/api'
+import { ApiError, faqsService } from '@/lib/api'
+import type { FaqManageDto } from '@/lib/api/faqs.service'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { ConfirmDialog, useConfirmDialog } from '@/components/common/confirm-dialog'
-import { EmptyState } from '@/components/common/empty-state'
-import { ErrorState } from '@/components/common/error-state'
-import { PageSkeleton } from '@/components/common/page-skeleton'
+import { formatShortDate } from '@/lib/dates'
 
-interface FAQDraft {
-  question: string
-  answer: string
-}
-
-interface FAQsManagerProps {
+interface ManageFAQsProps {
   campaignId: string
 }
 
-export function FAQsManager({ campaignId }: FAQsManagerProps) {
-  const [campaign, setCampaign] = useState<Campaign | null>(null)
-  const [drafts, setDrafts] = useState<FAQDraft[]>([])
+export function ManageFAQs({ campaignId }: ManageFAQsProps) {
+  const [faqs, setFaqs] = useState<FaqManageDto[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
-  const [retryKey, setRetryKey] = useState(0)
-  const [busy, setBusy] = useState(false)
-  const confirmRemove = useConfirmDialog<number>()
+  const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({})
+  const [submitting, setSubmitting] = useState<string | null>(null)
 
   useEffect(() => {
-    let cancelled = false
-    Promise.all([campaignsService.getById(campaignId), faqsService.listByCampaign(campaignId)])
-      .then(([c, faqs]) => {
-        if (cancelled) return
-        setCampaign(c)
-        setDrafts(faqs.map((f) => ({ question: f.question, answer: f.answer })))
-        setError(false)
-        setLoading(false)
-      })
-      .catch(() => {
-        if (cancelled) return
-        setError(true)
-        setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [campaignId, retryKey])
+    faqsService
+      .listManage(campaignId)
+      .then(setFaqs)
+      .catch(() => setFaqs([]))
+      .finally(() => setLoading(false))
+  }, [campaignId])
 
-  function addDraft() {
-    setDrafts((prev) => [...prev, { question: '', answer: '' }])
+  function setDraft(faqId: string, value: string) {
+    setAnswerDrafts((prev) => ({ ...prev, [faqId]: value }))
   }
 
-  function updateAt(idx: number, patch: Partial<FAQDraft>) {
-    setDrafts((prev) => prev.map((d, i) => (i === idx ? { ...d, ...patch } : d)))
-  }
-
-  function removeAt(idx: number) {
-    setDrafts((prev) => prev.filter((_, i) => i !== idx))
-  }
-
-  function requestRemove(idx: number) {
-    const draft = drafts[idx]
-    if (!draft || (!draft.question.trim() && !draft.answer.trim())) {
-      removeAt(idx)
-      return
-    }
-    confirmRemove.ask(idx)
-  }
-
-  async function handleSave() {
-    setBusy(true)
+  async function handleAnswer(faqId: string) {
+    const answer = answerDrafts[faqId]?.trim()
+    if (!answer) return
+    setSubmitting(faqId)
     try {
-      const valid = drafts
-        .map((d) => ({ question: d.question.trim(), answer: d.answer.trim() }))
-        .filter((d) => d.question && d.answer)
-      await faqsService.upsert(campaignId, valid)
-      toast.success('Preguntas guardadas')
+      const updated = await faqsService.answer(campaignId, faqId, { answer })
+      setFaqs((prev) =>
+        prev.map((f) =>
+          f.id === faqId ? { ...f, answer: updated.answer, answered: true } : f
+        )
+      )
+      setAnswerDrafts((prev) => { const next = { ...prev }; delete next[faqId]; return next })
+      toast.success('Respuesta publicada')
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : 'No pudimos guardar las preguntas'
+      const message = err instanceof ApiError ? err.message : 'No pudimos publicar la respuesta.'
+      toast.error(message)
+    } finally {
+      setSubmitting(null)
+    }
+  }
+
+  async function handleDelete(faqId: string) {
+    try {
+      await faqsService.remove(campaignId, faqId)
+      setFaqs((prev) => prev.filter((f) => f.id !== faqId))
+      toast.success('Pregunta eliminada')
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'No pudimos eliminar la pregunta.'
       toast.error(message)
     }
-    setBusy(false)
   }
 
-  if (error) return <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
-  if (loading || !campaign) return <PageSkeleton variant="list" />
+  if (loading) return <p className="text-muted-foreground text-sm">Cargando preguntas…</p>
+
+  if (faqs.length === 0) {
+    return (
+      <div className="border-border bg-muted/30 rounded-lg border border-dashed p-8 text-center">
+        <p className="text-muted-foreground text-sm">Aún no hay preguntas de patrocinadores.</p>
+      </div>
+    )
+  }
+
+  const pending = faqs.filter((f) => !f.answered)
+  const answered = faqs.filter((f) => f.answered)
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <p className="text-muted-foreground text-xs">{campaign.title}</p>
-          <h1 className="text-3xl font-semibold tracking-tight">Preguntas frecuentes</h1>
-          <p className="text-muted-foreground text-sm">
-            Resuelve dudas comunes antes de que los patrocinadores apoyen.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={addDraft}>
-            <Plus className="size-4" />
-            Agregar
-          </Button>
-          <Button type="button" size="sm" onClick={handleSave} disabled={busy}>
-            <Save className="size-4" />
-            Guardar
-          </Button>
-        </div>
-      </header>
-
-      {drafts.length === 0 ? (
-        <EmptyState
-          icon={HelpCircle}
-          title="Aún no agregaste preguntas"
-          description="Comienza agregando una pregunta y su respuesta."
-          action={
-            <Button type="button" variant="outline" size="sm" onClick={addDraft}>
-              <Plus className="size-4" />
-              Agregar primera pregunta
-            </Button>
-          }
-        />
-      ) : (
-        <div className="flex flex-col gap-4">
-          {drafts.map((draft, idx) => (
-            <article key={idx} className="border-border bg-card rounded-lg border p-4">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <h3 className="text-sm font-medium">Pregunta {idx + 1}</h3>
+      {pending.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <Clock className="size-4 text-amber-500" aria-hidden="true" />
+            Sin responder ({pending.length})
+          </h2>
+          {pending.map((faq) => (
+            <article key={faq.id} className="border-border bg-card rounded-lg border p-4">
+              <div className="mb-3 flex items-start justify-between gap-2">
+                <div className="flex flex-col gap-0.5">
+                  <p className="text-sm font-medium">{faq.question}</p>
+                  <p className="text-muted-foreground text-xs">
+                    Por {faq.askedBy} · {formatShortDate(faq.askedAt)}
+                  </p>
+                </div>
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon-sm"
-                  onClick={() => requestRemove(idx)}
+                  onClick={() => handleDelete(faq.id)}
                   aria-label="Eliminar pregunta"
                 >
-                  <Trash2 className="size-4" aria-hidden="true" />
+                  <Trash2 className="size-4" />
                 </Button>
               </div>
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor={`faq-q-${idx}`}>Pregunta</Label>
-                  <Input
-                    id={`faq-q-${idx}`}
-                    value={draft.question}
-                    onChange={(e) => updateAt(idx, { question: e.target.value })}
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor={`faq-a-${idx}`}>Respuesta</Label>
-                  <textarea
-                    id={`faq-a-${idx}`}
-                    value={draft.answer}
-                    onChange={(e) => updateAt(idx, { answer: e.target.value })}
-                    rows={3}
-                    className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-lg border px-2.5 py-1.5 text-sm outline-none focus-visible:ring-3"
-                  />
-                </div>
+              <div className="flex flex-col gap-2">
+                <textarea
+                  value={answerDrafts[faq.id] ?? ''}
+                  onChange={(e) => setDraft(faq.id, e.target.value)}
+                  placeholder="Escribe tu respuesta…"
+                  rows={3}
+                  className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-lg border px-2.5 py-1.5 text-sm outline-none focus-visible:ring-3"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  className="self-end"
+                  disabled={!answerDrafts[faq.id]?.trim() || submitting === faq.id}
+                  onClick={() => handleAnswer(faq.id)}
+                >
+                  {submitting === faq.id ? 'Publicando…' : 'Publicar respuesta'}
+                </Button>
               </div>
             </article>
           ))}
-        </div>
+        </section>
       )}
 
-      <ConfirmDialog
-        open={confirmRemove.open}
-        onOpenChange={(next) => (next ? null : confirmRemove.close())}
-        title="¿Eliminar esta pregunta?"
-        description="Perderás el texto que escribiste. Recuerda que aún debes guardar los cambios para que se apliquen."
-        confirmLabel="Eliminar"
-        cancelLabel="Volver"
-        variant="destructive"
-        onConfirm={() =>
-          confirmRemove.run((idx) => {
-            removeAt(idx)
-          })
-        }
-      />
+      {answered.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <CheckCircle2 className="size-4 text-emerald-500" aria-hidden="true" />
+            Respondidas ({answered.length})
+          </h2>
+          {answered.map((faq) => (
+            <article key={faq.id} className="border-border bg-card rounded-lg border p-4 opacity-80">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm font-medium">{faq.question}</p>
+                  <p className="text-muted-foreground text-sm">{faq.answer}</p>
+                  <p className="text-muted-foreground text-xs">
+                    Por {faq.askedBy} · {formatShortDate(faq.askedAt)}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => handleDelete(faq.id)}
+                  aria-label="Eliminar pregunta"
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
     </div>
   )
 }

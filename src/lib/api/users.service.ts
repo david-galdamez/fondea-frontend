@@ -1,12 +1,22 @@
-import type { ID, User } from '@/types'
+import type { Role, User } from '@/types'
 import { simulateNetwork } from './client'
 import { NotFoundError } from './errors'
 import { usersStore } from './_stores'
+import { api } from '../client';
 
-export type UpdateUserPatch = Partial<Pick<User, 'name' | 'avatarUrl' | 'location' | 'bio'>>
+export interface UserDto {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  isVerified: boolean;
+  createdAt: string;
+}
+
+export type UpdateUserPatch = Partial<Pick<User, 'name' | 'city' | 'country' | 'bio'>>
 
 export const usersService = {
-  async getById(id: ID): Promise<User> {
+  async getById(id: string): Promise<User> {
     await simulateNetwork()
     const user = usersStore.findById(id)
     if (!user) throw new NotFoundError('Usuario')
@@ -18,10 +28,16 @@ export const usersService = {
     return usersStore.all()
   },
 
-  async updateProfile(id: ID, patch: UpdateUserPatch): Promise<User> {
-    await simulateNetwork()
-    const updated = usersStore.update(id, patch)
-    if (!updated) throw new NotFoundError('Usuario')
-    return updated
+  async updateProfile(patch: UpdateUserPatch): Promise<User> {
+    const res = await api.put<UserDto>('/api/auth/update-profile', patch)
+    const user: User = {
+      id: res.id,
+      name: res.name,
+      email: res.email,
+      role: res.role,
+      isVerified: res.isVerified,
+      createdAt: res.createdAt
+    }
+    return user;
   },
 }

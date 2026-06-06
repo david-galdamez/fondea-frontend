@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Save } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Role, User } from '@/types'
+import type { User } from '@/types'
 import { ApiError, usersService } from '@/lib/api'
 import { ROLE_LABEL } from '@/lib/auth-routing'
 import { useSession } from '@/components/providers/session-provider'
@@ -15,7 +15,6 @@ import { UserAvatar } from '@/components/layout/user-avatar'
 
 interface FormState {
   name: string
-  avatarUrl: string
   city: string
   country: string
   bio: string
@@ -23,7 +22,6 @@ interface FormState {
 
 interface FormErrors {
   name?: string
-  avatarUrl?: string
   bio?: string
 }
 
@@ -32,21 +30,11 @@ const TEXTAREA_CLASS =
 
 const BIO_LIMIT = 280
 
-function isHttpUrl(value: string): boolean {
-  try {
-    const url = new URL(value)
-    return url.protocol === 'http:' || url.protocol === 'https:'
-  } catch {
-    return false
-  }
-}
-
 function initialForm(user: User): FormState {
   return {
     name: user.name,
-    avatarUrl: user.avatarUrl ?? '',
-    city: user.location?.city ?? '',
-    country: user.location?.country ?? '',
+    city: user.city ?? '',
+    country: user.country ?? '',
     bio: user.bio ?? '',
   }
 }
@@ -76,9 +64,6 @@ function ProfileFormInner({ user }: InnerProps) {
     const next: FormErrors = {}
     if (!form.name.trim()) next.name = 'Requerido'
     else if (form.name.trim().length < 2) next.name = 'Mínimo 2 caracteres'
-    if (form.avatarUrl.trim() && !isHttpUrl(form.avatarUrl.trim())) {
-      next.avatarUrl = 'Debe ser una URL válida (http o https)'
-    }
     if (form.bio.length > BIO_LIMIT) next.bio = `Máximo ${BIO_LIMIT} caracteres`
     return next
   }
@@ -91,15 +76,13 @@ function ProfileFormInner({ user }: InnerProps) {
 
     const trimmedCity = form.city.trim()
     const trimmedCountry = form.country.trim()
-    const location =
-      trimmedCity || trimmedCountry ? { city: trimmedCity, country: trimmedCountry } : undefined
 
     setSaving(true)
     try {
-      await usersService.updateProfile(user.id, {
+      await usersService.updateProfile({
         name: form.name.trim(),
-        avatarUrl: form.avatarUrl.trim() || undefined,
-        location,
+        city: trimmedCity,
+        country: trimmedCountry,
         bio: form.bio.trim() || undefined,
       })
       await refresh()
@@ -114,7 +97,6 @@ function ProfileFormInner({ user }: InnerProps) {
 
   const previewUser = {
     name: form.name.trim() || user.name,
-    avatarUrl: form.avatarUrl.trim() || user.avatarUrl,
   }
 
   return (
@@ -132,14 +114,12 @@ function ProfileFormInner({ user }: InnerProps) {
           <span className="truncate text-base font-medium">{previewUser.name}</span>
           <span className="text-muted-foreground truncate text-sm">{user.email}</span>
           <div className="mt-1.5 flex flex-wrap gap-1">
-            {user.roles.map((role: Role) => (
-              <span
-                key={role}
-                className="bg-muted text-muted-foreground inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-              >
-                {ROLE_LABEL[role]}
-              </span>
-            ))}
+            <span
+              key={user.role}
+              className="bg-muted text-muted-foreground inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+            >
+              {ROLE_LABEL[user.role]}
+            </span>
           </div>
         </div>
       </section>
@@ -160,28 +140,6 @@ function ProfileFormInner({ user }: InnerProps) {
           {errors.name && (
             <span id="name-error" className="text-destructive text-xs">
               {errors.name}
-            </span>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="avatarUrl">URL de avatar</Label>
-          <Input
-            id="avatarUrl"
-            type="url"
-            placeholder="https://…"
-            value={form.avatarUrl}
-            onChange={(e) => setField('avatarUrl', e.target.value)}
-            aria-invalid={!!errors.avatarUrl}
-            aria-describedby={errors.avatarUrl ? 'avatar-error' : 'avatar-help'}
-          />
-          {errors.avatarUrl ? (
-            <span id="avatar-error" className="text-destructive text-xs">
-              {errors.avatarUrl}
-            </span>
-          ) : (
-            <span id="avatar-help" className="text-muted-foreground text-xs">
-              Pega una URL pública. Déjalo en blanco para usar tus iniciales.
             </span>
           )}
         </div>

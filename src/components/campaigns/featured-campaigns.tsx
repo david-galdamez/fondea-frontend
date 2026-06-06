@@ -1,23 +1,23 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { CampaignSummary } from '@/types'
 import { campaignsService } from '@/lib/api'
 import { CampaignCard } from './campaign-card'
 import { CampaignCardSkeleton } from './campaign-card-skeleton'
+import { CampaignSummaryDto } from '@/lib/api/campaigns.service';
 
 interface FeaturedCampaignsProps {
   limit?: number
 }
 
 export function FeaturedCampaigns({ limit = 6 }: FeaturedCampaignsProps) {
-  const [items, setItems] = useState<CampaignSummary[] | null>(null)
+  const [items, setItems] = useState<CampaignSummaryDto[] | null>(null)
   const [error, setError] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     campaignsService
-      .getFeatured(limit)
+      .getFeatured()
       .then((res) => {
         if (!cancelled) setItems(res)
       })

@@ -5,9 +5,6 @@ import { Label } from '@/components/ui/label'
 import { MAX_CAMPAIGN_DURATION_DAYS, MIN_CAMPAIGN_DURATION_DAYS } from '@/lib/constants'
 import type { WizardFields } from './types'
 
-const SELECT_CLASS =
-  'border-input bg-background h-8 w-full rounded-lg border px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50'
-
 interface StepGoalProps {
   fields: WizardFields
   errors: Partial<Record<keyof WizardFields, string>>
@@ -18,25 +15,23 @@ export function StepGoal({ fields, errors, onChange }: StepGoalProps) {
   const closeDate = computeCloseDate(fields.durationDays)
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="goalType">
-          Tipo de meta <span className="text-destructive">*</span>
-        </Label>
-        <select
+      <div className="flex flex-row gap-1.5">
+        <input
           id="goalType"
-          className={SELECT_CLASS}
-          value={fields.goalType}
-          onChange={(e) => onChange({ goalType: e.target.value as WizardFields['goalType'] })}
-        >
-          <option value="fixed">Fija — todo o nada</option>
-          <option value="flexible">Flexible — recibes lo recaudado</option>
-        </select>
-        <p className="text-muted-foreground text-xs">
-          {fields.goalType === 'fixed'
-            ? 'Solo se cobra a los patrocinadores si alcanzas la meta antes del cierre.'
-            : 'Recibes lo recaudado aunque no alcances la meta.'}
-        </p>
+          type="checkbox"
+          className="h-4 w-4 accent-primary cursor-pointer"
+          checked={fields.isFlexibleGoal}
+          onChange={(e) => onChange({ isFlexibleGoal: e.target.checked })}
+        />
+        <Label htmlFor="goalType">
+          Meta flexible <span className="text-destructive">*</span>
+        </Label>
       </div>
+      <p className="text-muted-foreground text-xs">
+        {!fields.isFlexibleGoal
+          ? 'Solo se cobra a los patrocinadores si alcanzas la meta antes del cierre.'
+          : 'Recibes lo recaudado aunque no alcances la meta.'}
+      </p>
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="goalAmount">
@@ -66,7 +61,10 @@ export function StepGoal({ fields, errors, onChange }: StepGoalProps) {
           min={MIN_CAMPAIGN_DURATION_DAYS}
           max={MAX_CAMPAIGN_DURATION_DAYS}
           value={fields.durationDays}
-          onChange={(e) => onChange({ durationDays: Number(e.target.value) })}
+          onChange={(e) => {
+            const durationDays = Number(e.target.value)
+            onChange({ durationDays, deadline: computeCloseDate(durationDays) })
+          }}
           aria-invalid={!!errors.durationDays}
         />
         <p className="text-muted-foreground text-xs">
@@ -81,7 +79,7 @@ export function StepGoal({ fields, errors, onChange }: StepGoalProps) {
   )
 }
 
-function computeCloseDate(durationDays: number): string {
+export function computeCloseDate(durationDays: number): string {
   if (!durationDays || durationDays <= 0) return 'cuando definas la duración'
   const d = new Date()
   d.setDate(d.getDate() + durationDays)
