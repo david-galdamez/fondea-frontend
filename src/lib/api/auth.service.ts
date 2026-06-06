@@ -1,11 +1,11 @@
 import type { ISODateString, Role, Session, User } from '@/types'
 import { api, tokenStore } from '../client';
 
-const SESSION_TTL_HOU = 2
+const SESSION_TTL_HOUR = 2
 
 function buildSession(user: User, token: string): Session {
   const expires = new Date()
-  expires.setTime(expires.getTime() + SESSION_TTL_HOU * 60 * 60 * 1000)
+  expires.setTime(expires.getTime() + SESSION_TTL_HOUR * 60 * 60 * 1000)
   return {
     user,
     token: token,

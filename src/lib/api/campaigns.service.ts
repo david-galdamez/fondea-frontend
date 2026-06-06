@@ -18,14 +18,17 @@ export interface CampaignSummaryDto {
   id: string
   title: string
   creatorName: string
+  coverImageUrl: string | null
   goalAmount: number
   totalPledged: number
   pledgeCount: number
   deadline: string        // LocalDate → "YYYY-MM-DD"
   categoryName: string
   locationCity: string
+  locationCountry: string
   status: CampaignStatus
   featuredScore: number | null
+  featured: boolean
 }
 
 export interface RewardSummaryDto {
@@ -97,6 +100,7 @@ export interface RegisterCampaignRequest {
   categoryId: string
   locationId: string
   city: string
+  coverImageUrl: string
 }
 
 export const campaignsService = {

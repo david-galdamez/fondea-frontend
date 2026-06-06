@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { ArrowRight, Banknote, CalendarClock, Megaphone, Plus, Sparkles, Users } from 'lucide-react'
-import type { Withdrawal } from '@/types'
 import { campaignsService, withdrawalsService } from '@/lib/api'
 import { addMoney, money, zeroMoney } from '@/lib/money'
 import { formatShortDate } from '@/lib/dates'
@@ -16,10 +15,11 @@ import { MoneyDisplay } from '@/components/common/money-display'
 import { StatusBadge } from '@/components/campaigns/status-badge'
 import { CampaignProgress } from '@/components/campaigns/campaign-progress'
 import { MyCampaignDto } from '@/lib/api/campaigns.service';
+import { WithdrawalDto } from '@/lib/api/withdrawals.service';
 
 interface DashboardData {
   campaigns: MyCampaignDto[]
-  withdrawals: Withdrawal[]
+  withdrawals: WithdrawalDto[]
   totalRaised: ReturnType<typeof zeroMoney>
   activeCount: number
   pendingReviewCount: number
@@ -40,7 +40,7 @@ export function CreatorDashboard() {
     if (!userId) return
     let cancelled = false
 
-    Promise.all([campaignsService.getMine(), withdrawalsService.listByCreator(userId)])
+    Promise.all([campaignsService.getMine(), withdrawalsService.getMine()])
       .then(([campaigns, withdrawals]) => {
         if (cancelled) return
         const totalRaised = campaigns.reduce((acc, c) => addMoney(acc, money(Math.floor(c.totalPledged * 100))), zeroMoney())
@@ -82,7 +82,7 @@ export function CreatorDashboard() {
     if (c.status !== 'SUCCESSFUL') return false
     const withdrawn = data.withdrawals
       .filter((w) => w.campaignId === c.id)
-      .reduce((acc, w) => acc + w.gross.amount, 0)
+      .reduce((acc, w) => acc + w.grossAmount, 0)
     return withdrawn < c.totalPledged
   })
 
@@ -174,7 +174,7 @@ export function CreatorDashboard() {
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{c.title}</p>
                   <p className="text-muted-foreground text-xs">
-                    Recaudado <MoneyDisplay value={money(Math.floor(c.totalPledged * 100))} className="text-foreground" />
+                    Recaudado <MoneyDisplay value={money(Math.floor(c.availableToWithdraw! * 100))} className="text-foreground" />
                   </p>
                 </div>
                 <Button render={<Link href="/creador/retiros" />} variant="outline" size="sm">

@@ -3,13 +3,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, Banknote, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Campaign, Withdrawal, WithdrawalLimit } from '@/types'
 import { ApiError, campaignsService, withdrawalsService } from '@/lib/api'
+import type { MyCampaignDto } from '@/lib/api/campaigns.service'
+import type { WithdrawalDto, WithdrawalLimitsDto } from '@/lib/api/withdrawals.service'
 import { COMMISSION_RATE } from '@/lib/constants'
-import { compareMoney, money, multiplyMoney } from '@/lib/money'
-import { centsToDollarsString, dollarsToCents } from '@/lib/wizard-helpers'
+import { money, multiplyMoney } from '@/lib/money'
 import { formatShortDate } from '@/lib/dates'
-import { useSession } from '@/components/providers/session-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -18,45 +17,47 @@ import { ErrorState } from '@/components/common/error-state'
 import { MoneyDisplay } from '@/components/common/money-display'
 import { PageSkeleton } from '@/components/common/page-skeleton'
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 interface Data {
-  campaigns: Campaign[]
-  withdrawals: Withdrawal[]
-  limits: WithdrawalLimit
+  campaigns: MyCampaignDto[]
+  withdrawals: WithdrawalDto[]
+  limits: WithdrawalLimitsDto
 }
 
-const STATUS_LABEL: Record<Withdrawal['status'], string> = {
-  requested: 'Solicitado',
-  approved: 'Aprobado',
-  paid: 'Pagado',
-  rejected: 'Rechazado',
+// ─── Status display ───────────────────────────────────────────────────────────
+
+const STATUS_LABEL: Record<string, string> = {
+  PENDING: 'Pendiente',
+  APPROVED: 'Aprobado',
+  PAID: 'Pagado',
+  REJECTED: 'Rechazado',
 }
 
-const STATUS_CLASSES: Record<Withdrawal['status'], string> = {
-  requested: 'bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200',
-  approved: 'bg-blue-100 text-blue-900 dark:bg-blue-950/40 dark:text-blue-200',
-  paid: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200',
-  rejected: 'bg-destructive/10 text-destructive',
+const STATUS_CLASSES: Record<string, string> = {
+  PENDING: 'bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200',
+  APPROVED: 'bg-blue-100 text-blue-900 dark:bg-blue-950/40 dark:text-blue-200',
+  PAID: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200',
+  REJECTED: 'bg-destructive/10 text-destructive',
 }
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function WithdrawalsPage() {
-  const { session } = useSession()
-  const userId = session?.user.id
-
   const [data, setData] = useState<Data | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [retryKey, setRetryKey] = useState(0)
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string>('')
-  const [amountInput, setAmountInput] = useState<string>('')
+  const [selectedCampaignId, setSelectedCampaignId] = useState('')
+  const [amountInput, setAmountInput] = useState('')
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    if (!userId) return
     let cancelled = false
     Promise.all([
-      campaignsService.getByCreator(userId),
-      withdrawalsService.listByCreator(userId),
-      withdrawalsService.getLimits(userId),
+      campaignsService.getMine(),
+      withdrawalsService.getMine(),
+      withdrawalsService.getLimits(),
     ])
       .then(([campaigns, withdrawals, limits]) => {
         if (cancelled) return
@@ -69,44 +70,35 @@ export function WithdrawalsPage() {
         setError(true)
         setLoading(false)
       })
-    return () => {
-      cancelled = true
-    }
-  }, [userId, retryKey])
+    return () => { cancelled = true }
+  }, [retryKey])
 
+  // Campañas exitosas con saldo disponible
   const eligibleCampaigns = useMemo(() => {
     if (!data) return []
     return data.campaigns
-      .filter((c) => c.status === 'successful')
-      .map((c) => {
-        const withdrawn = data.withdrawals
-          .filter((w) => w.campaignId === c.id && w.status !== 'rejected')
-          .reduce((acc, w) => acc + w.gross.amount, 0)
-        const available = Math.max(0, c.raised.amount - withdrawn)
-        return { campaign: c, availableCents: available }
-      })
-      .filter((row) => row.availableCents > 0)
+      .filter((c) => c.status === 'SUCCESSFUL' && c.availableToWithdraw != null && c.availableToWithdraw > 0)
+      .map((c) => ({
+        campaign: c,
+        available: c.availableToWithdraw!, // BigDecimal en dólares desde el backend
+      }))
   }, [data])
 
   const selected = eligibleCampaigns.find((r) => r.campaign.id === selectedCampaignId) ?? null
-  const grossCents = dollarsToCents(amountInput)
-  const grossMoney = money(grossCents)
+  const grossAmount = Number(amountInput) || 0
+  const grossMoney = money(Math.round(grossAmount * 100))
   const commissionMoney = multiplyMoney(grossMoney, COMMISSION_RATE)
-  const netMoney = money(Math.max(0, grossCents - commissionMoney.amount))
+  const netMoney = money(Math.max(0, grossMoney.amount - commissionMoney.amount))
 
-  const overAvailable = !!selected && grossCents > selected.availableCents
+  const overAvailable = !!selected && grossAmount > selected.available
   const limitExceeded =
     !!data?.limits.isNewCreator &&
-    grossCents > 0 &&
-    compareMoney(
-      { ...data.limits.usedToday, amount: data.limits.usedToday.amount + netMoney.amount },
-      data.limits.dailyMax
-    ) > 0
+    grossAmount > 0 &&
+    grossAmount > data.limits.availableToday
 
   async function handleRequest(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!userId || !selected) return
-    if (grossCents <= 0) {
+    if (!selected || grossAmount <= 0) {
       toast.error('Ingresa un monto mayor a cero')
       return
     }
@@ -114,11 +106,19 @@ export function WithdrawalsPage() {
       toast.error('Excede lo disponible para esta campaña')
       return
     }
+    if (limitExceeded) {
+      toast.error('Excede el límite diario para nuevos creadores')
+      return
+    }
     setBusy(true)
     try {
-      await withdrawalsService.request(userId, selected.campaign.id, grossMoney)
+      await withdrawalsService.request({
+        campaignId: selected.campaign.id,
+        grossAmount,
+      })
       toast.success('Retiro solicitado')
       setAmountInput('')
+      setSelectedCampaignId('')
       setRetryKey((k) => k + 1)
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'No pudimos crear la solicitud'
@@ -130,10 +130,6 @@ export function WithdrawalsPage() {
   if (error) return <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
   if (loading || !data) return <PageSkeleton variant="summary" />
 
-  const remainingToday = money(
-    Math.max(0, data.limits.dailyMax.amount - data.limits.usedToday.amount)
-  )
-
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-1">
@@ -143,6 +139,7 @@ export function WithdrawalsPage() {
         </p>
       </header>
 
+      {/* Límite diario para nuevos creadores */}
       {data.limits.isNewCreator && (
         <aside className="flex flex-col gap-1 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
           <div className="flex items-center gap-2 font-medium">
@@ -150,13 +147,16 @@ export function WithdrawalsPage() {
             Límite diario para nuevos creadores
           </div>
           <p>
-            Hoy puedes retirar hasta <MoneyDisplay value={data.limits.dailyMax} /> neto. Usado hoy:{' '}
-            <MoneyDisplay value={data.limits.usedToday} /> · Disponible:{' '}
-            <MoneyDisplay value={remainingToday} />.
+            Hoy puedes retirar hasta{' '}
+            <MoneyDisplay value={money(Math.round(data.limits.dailyLimit * 100))} /> neto. Usado
+            hoy: <MoneyDisplay value={money(Math.round(data.limits.usedToday * 100))} /> ·
+            Disponible:{' '}
+            <MoneyDisplay value={money(Math.round(data.limits.availableToday * 100))} />.
           </p>
         </aside>
       )}
 
+      {/* Formulario de retiro */}
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Solicitar retiro</h2>
         {eligibleCampaigns.length === 0 ? (
@@ -181,7 +181,7 @@ export function WithdrawalsPage() {
                 <option value="">Selecciona una campaña…</option>
                 {eligibleCampaigns.map((row) => (
                   <option key={row.campaign.id} value={row.campaign.id}>
-                    {row.campaign.title} — Disponible {centsToDollarsString(row.availableCents)} USD
+                    {row.campaign.title} — Disponible ${row.available.toFixed(2)} USD
                   </option>
                 ))}
               </select>
@@ -194,21 +194,22 @@ export function WithdrawalsPage() {
                   <Input
                     id="amount"
                     type="number"
-                    min={1}
+                    min={0.01}
                     step="0.01"
-                    max={selected.availableCents / 100}
+                    max={selected.available}
                     value={amountInput}
                     onChange={(e) => setAmountInput(e.target.value)}
-                    aria-invalid={overAvailable}
+                    aria-invalid={overAvailable || limitExceeded}
                   />
                   {overAvailable && (
                     <span className="text-destructive text-xs">
-                      Excede lo disponible (<MoneyDisplay value={money(selected.availableCents)} />)
+                      Excede lo disponible (${selected.available.toFixed(2)} USD)
                     </span>
                   )}
-                  {limitExceeded && (
+                  {limitExceeded && !overAvailable && (
                     <span className="text-destructive text-xs">
-                      Excede el límite diario para nuevos creadores
+                      Excede el límite diario disponible ($
+                      {data.limits.availableToday.toFixed(2)} USD)
                     </span>
                   )}
                 </div>
@@ -236,7 +237,7 @@ export function WithdrawalsPage() {
               type="submit"
               size="sm"
               className="self-end"
-              disabled={busy || !selected || grossCents <= 0 || overAvailable || limitExceeded}
+              disabled={busy || !selected || grossAmount <= 0 || overAvailable || limitExceeded}
             >
               Solicitar retiro
             </Button>
@@ -244,45 +245,43 @@ export function WithdrawalsPage() {
         )}
       </section>
 
+      {/* Historial */}
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Historial</h2>
         {data.withdrawals.length === 0 ? (
           <EmptyState icon={Banknote} title="Aún no has solicitado retiros" />
         ) : (
           <div className="flex flex-col gap-2">
-            {data.withdrawals.map((w) => {
-              const campaign = data.campaigns.find((c) => c.id === w.campaignId)
-              return (
-                <div
-                  key={w.id}
-                  className="border-border bg-card flex items-center gap-3 rounded-lg border p-4"
-                >
-                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <p className="truncate text-sm font-medium">
-                      {campaign?.title ?? 'Campaña eliminada'}
-                    </p>
+            {data.withdrawals.map((w) => (
+              <div
+                key={w.id}
+                className="border-border bg-card flex items-center gap-3 rounded-lg border p-4"
+              >
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <p className="truncate text-sm font-medium">{w.campaignTitle}</p>
+                  <p className="text-muted-foreground text-xs">
+                    Solicitado {formatShortDate(w.requestedAt)}
+                  </p>
+                  {w.paidAt && (
                     <p className="text-muted-foreground text-xs">
-                      Solicitado {formatShortDate(w.requestedAt)}
+                      Pagado {formatShortDate(w.paidAt)}
                     </p>
-                    {w.rejectionReason && (
-                      <p className="text-destructive text-xs">Motivo: {w.rejectionReason}</p>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <MoneyDisplay value={w.net} className="text-sm font-medium" />
-                    <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASSES[w.status]}`}
-                    >
-                      {STATUS_LABEL[w.status]}
-                    </span>
-                  </div>
-                  <ChevronRight
-                    className="text-muted-foreground size-4 shrink-0"
-                    aria-hidden="true"
-                  />
+                  )}
                 </div>
-              )
-            })}
+                <div className="flex flex-col items-end gap-1">
+                  <MoneyDisplay
+                    value={money(Math.round(w.netAmount * 100))}
+                    className="text-sm font-medium"
+                  />
+                  <span
+                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASSES[w.status] ?? ''}`}
+                  >
+                    {STATUS_LABEL[w.status] ?? w.status}
+                  </span>
+                </div>
+                <ChevronRight className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
+              </div>
+            ))}
           </div>
         )}
       </section>

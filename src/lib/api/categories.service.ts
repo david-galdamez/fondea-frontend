@@ -1,5 +1,9 @@
-import type { Category } from '@/types'
 import { api } from '../client';
+
+export interface Category {
+  id: string
+  name: string
+}
 
 export const categoriesService = {
   async list(): Promise<Category[]> {

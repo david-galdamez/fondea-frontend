@@ -1,124 +1,75 @@
-import type { CreatePledgeInput, ID, Paginated, Pledge } from '@/types'
-import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
-import { addMoney, compareMoney } from '@/lib/money'
-import { generateId, nowISO, paginate, simulateNetwork } from './client'
-import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from './errors'
-import { campaignsStore, pledgesStore, rewardsStore } from './_stores'
+import { api } from '../client'
+
+export type PledgeStatus =
+  | 'AUTHORIZED'
+  | 'CAPTURED'
+  | 'CANCELLED'
+  | 'REFUNDED'
+  | 'PENDING'
+
+export interface PledgeCreatedDto {
+  id: string
+  campaignTitle: string
+  rewardTitle: string | null
+  amount: number
+  status: PledgeStatus
+  createdAt: string
+}
+
+export interface MyPledgeDto {
+  id: string
+  campaignId: string
+  campaignTitle: string
+  creatorName: string
+  rewardTitle: string | null
+  amount: number
+  status: PledgeStatus
+  createdAt: string
+  campaignGoal: number
+  campaignTotalPledged: number
+  campaignDeadline: string
+}
+
+export interface CampaignPledgeDto {
+  id: string
+  sponsorId: string
+  sponsorName: string
+  amount: number
+  status: PledgeStatus
+  createdAt: string
+}
+
+export interface PageableResponse<T> {
+  content: T[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+  last: boolean
+}
+
+export interface CreatePledgeRequest {
+  campaignId: string
+  rewardId?: string
+  amount: number
+}
 
 export const pledgesService = {
-  async listByCampaign(
-    campaignId: ID,
+  create(data: CreatePledgeRequest): Promise<PledgeCreatedDto> {
+    return api.post<PledgeCreatedDto>('/api/pledges', data)
+  },
+
+  getMine(): Promise<MyPledgeDto[]> {
+    return api.get<MyPledgeDto[]>('/api/pledges/mine')
+  },
+
+  listByCampaign(
+    campaignId: string,
     page = 1,
-    pageSize = DEFAULT_PAGE_SIZE
-  ): Promise<Paginated<Pledge>> {
-    await simulateNetwork()
-    const items = pledgesStore
-      .filter((p) => p.campaignId === campaignId)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    return paginate(items, page, pageSize)
-  },
-
-  async listByBacker(
-    backerId: ID,
-    page = 1,
-    pageSize = DEFAULT_PAGE_SIZE
-  ): Promise<Paginated<Pledge>> {
-    await simulateNetwork()
-    const items = pledgesStore
-      .filter((p) => p.backerId === backerId)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    return paginate(items, page, pageSize)
-  },
-
-  async getById(id: ID): Promise<Pledge> {
-    await simulateNetwork()
-    const p = pledgesStore.findById(id)
-    if (!p) throw new NotFoundError('Pledge')
-    return p
-  },
-
-  async create(backerId: ID, input: CreatePledgeInput): Promise<Pledge> {
-    await simulateNetwork()
-    const campaign = campaignsStore.findById(input.campaignId)
-    if (!campaign) throw new NotFoundError('Campaña')
-    if (campaign.creatorId === backerId) {
-      throw new ForbiddenError('No puedes apoyar tu propia campaña')
-    }
-    if (campaign.status !== 'active') {
-      throw new ForbiddenError('Solo puedes apoyar campañas activas')
-    }
-    if (input.amount.amount <= 0) {
-      throw new ValidationError('El monto debe ser mayor a cero', { amount: 'Inválido' })
-    }
-    if (input.rewardId) {
-      const reward = rewardsStore.findById(input.rewardId)
-      if (!reward) throw new NotFoundError('Recompensa')
-      if (reward.campaignId !== campaign.id) {
-        throw new ValidationError('La recompensa no pertenece a esta campaña')
-      }
-      if (compareMoney(input.amount, reward.minAmount) < 0) {
-        throw new ValidationError('El monto está por debajo del mínimo de la recompensa', {
-          amount: 'Por debajo del mínimo',
-        })
-      }
-      if (reward.stock !== undefined && reward.claimed >= reward.stock) {
-        throw new ConflictError('Esta recompensa ya no tiene stock')
-      }
-      rewardsStore.update(reward.id, { claimed: reward.claimed + 1 })
-    }
-
-    const pledge: Pledge = {
-      id: generateId(),
-      campaignId: input.campaignId,
-      backerId,
-      rewardId: input.rewardId,
-      amount: input.amount,
-      status: 'authorized',
-      isAnonymous: input.isAnonymous ?? false,
-      wantsCertificate: input.wantsCertificate ?? false,
-      createdAt: nowISO(),
-    }
-    pledgesStore.insert(pledge)
-
-    campaignsStore.update(campaign.id, {
-      raised: addMoney(campaign.raised, input.amount),
-      backersCount: campaign.backersCount + 1,
-      updatedAt: nowISO(),
-    })
-
-    return pledge
-  },
-
-  async cancel(id: ID, backerId: ID): Promise<Pledge> {
-    await simulateNetwork()
-    const existing = pledgesStore.findById(id)
-    if (!existing) throw new NotFoundError('Pledge')
-    if (existing.backerId !== backerId) {
-      throw new ForbiddenError('No puedes cancelar este pledge')
-    }
-    if (existing.status !== 'authorized' && existing.status !== 'pending') {
-      throw new ForbiddenError('Este pledge ya no se puede cancelar')
-    }
-    const updated = pledgesStore.update(id, { status: 'cancelled' })
-    if (!updated) throw new NotFoundError('Pledge')
-
-    const campaign = campaignsStore.findById(existing.campaignId)
-    if (campaign) {
-      campaignsStore.update(campaign.id, {
-        raised: {
-          ...campaign.raised,
-          amount: Math.max(0, campaign.raised.amount - existing.amount.amount),
-        },
-        backersCount: Math.max(0, campaign.backersCount - 1),
-        updatedAt: nowISO(),
-      })
-    }
-    if (existing.rewardId) {
-      const reward = rewardsStore.findById(existing.rewardId)
-      if (reward) {
-        rewardsStore.update(reward.id, { claimed: Math.max(0, reward.claimed - 1) })
-      }
-    }
-    return updated
+    size = 20,
+  ): Promise<PageableResponse<CampaignPledgeDto>> {
+    return api.get<PageableResponse<CampaignPledgeDto>>(
+      `/api/campaigns/${campaignId}/pledges?page=${page}&size=${size}`,
+    )
   },
 }
