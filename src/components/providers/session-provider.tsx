@@ -14,6 +14,8 @@ interface SessionContextValue {
   signUpSponsor: (input: RegisterInput) => Promise<Session>
   signOut: () => Promise<void>
   refresh: () => Promise<void>
+  verifyAccount: (code: string) => Promise<void>
+  resendVerificationCode: () => Promise<void>
   hasRole: (role: Role) => boolean
 }
 
@@ -70,6 +72,18 @@ export function SessionProvider({ children }: SessionProviderProps) {
     setSession(null)
   }, [])
 
+  const verifyAccount = useCallback(
+    async (code: string) => {
+      await authService.verify(code)
+      await refresh()
+    },
+    [refresh]
+  )
+
+  const resendVerificationCode = useCallback(async () => {
+    await authService.resendVerification()
+  }, [])
+
   const value = useMemo<SessionContextValue>(
     () => ({
       session,
@@ -80,9 +94,21 @@ export function SessionProvider({ children }: SessionProviderProps) {
       signUpSponsor,
       signOut,
       refresh,
-      hasRole: (role: Role) => session?.user.role === role
+      verifyAccount,
+      resendVerificationCode,
+      hasRole: (role: Role) => session?.user.role === role,
     }),
-    [session, isLoading, signIn, signUpCreator, signUpSponsor, signOut, refresh]
+    [
+      session,
+      isLoading,
+      signIn,
+      signUpCreator,
+      signUpSponsor,
+      signOut,
+      refresh,
+      verifyAccount,
+      resendVerificationCode,
+    ]
   )
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
