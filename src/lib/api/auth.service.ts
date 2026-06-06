@@ -1,5 +1,5 @@
 import type { ISODateString, Role, Session, User } from '@/types'
-import { api, tokenStore } from '../client';
+import { api, tokenStore } from '../client'
 
 const SESSION_TTL_HOUR = 2
 
@@ -45,18 +45,18 @@ function getUser(res: LoginResponse): User {
     createdAt: res.createdAt,
     bio: res.bio,
     city: res.city,
-    country: res.country
+    country: res.country,
   }
 
-  return user;
+  return user
 }
 
 export const authService = {
   async login(input: LoginInput): Promise<Session> {
     const res = await api.post<LoginResponse>('/api/auth/login', input)
 
-    tokenStore.set(res.token);
-    return buildSession(getUser(res), res.token);
+    tokenStore.set(res.token)
+    return buildSession(getUser(res), res.token)
   },
 
   async registerCreator(input: RegisterInput): Promise<Session> {
@@ -75,11 +75,19 @@ export const authService = {
     tokenStore.clear()
   },
 
+  async verify(code: string): Promise<void> {
+    await api.post<void>('/api/auth/verify', { code })
+  },
+
+  async resendVerification(): Promise<void> {
+    await api.post<void>('/api/auth/resend-verification', {})
+  },
+
   async getCurrentSession(): Promise<Session | null> {
     const token = tokenStore.get()
     if (!token) return null
-    const user = await api.get<User>('/api/auth/me');
+    const user = await api.get<User>('/api/auth/me')
 
     return buildSession(user, token)
-  }
+  },
 }

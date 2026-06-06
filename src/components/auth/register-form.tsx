@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ApiError, ValidationError } from '@/lib/api'
-import { getPrimaryPath } from '@/lib/auth-routing'
 import { useSession } from '@/components/providers/session-provider'
 
 type InitialRole = 'CREATOR' | 'SPONSOR'
@@ -31,9 +30,12 @@ export function RegisterForm() {
     setFieldErrors({})
     setSubmitting(true)
     try {
-      const session = initialRole === "SPONSOR" ? await signUpSponsor({ name, email, password }) : await signUpCreator({ name, email, password });
-      toast.success(`Bienvenido, ${session.user.name}`)
-      router.push(getPrimaryPath(session.user))
+      const session =
+        initialRole === 'SPONSOR'
+          ? await signUpSponsor({ name, email, password })
+          : await signUpCreator({ name, email, password })
+      toast.success(`Bienvenido, ${session.user.name}. Revisa tu correo para confirmar tu cuenta.`)
+      router.push('/auth/confirmar')
     } catch (err) {
       if (err instanceof ValidationError && err.fields) {
         setFieldErrors(err.fields)
