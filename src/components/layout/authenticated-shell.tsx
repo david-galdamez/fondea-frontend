@@ -49,6 +49,21 @@ export function AuthenticatedShell({ requiredRole, sidebar, children }: Authenti
     }
   }, [userId, pathname, unreadKey])
 
+  useEffect(() => {
+    if (isLoading) return
+    if (!session) {
+      router.replace('/auth/login')
+      return
+    }
+    if (!session.user.isVerified) {
+      router.replace('/auth/confirmar')
+      return
+    }
+    if (requiredRole && session.user.role !== requiredRole) {
+      router.replace(getPrimaryPath(session.user))
+    }
+  }, [isLoading, session, requiredRole, router])
+
   async function handleLogout() {
     await signOut()
     router.push('/auth/login')

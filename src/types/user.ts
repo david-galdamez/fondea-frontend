@@ -17,7 +17,7 @@ export interface User {
   country?: string
   bio?: string
   isNewCreator?: boolean
-  isVerified?: boolean
+  isVerified: boolean
 }
 
 export interface Session {

@@ -29,6 +29,12 @@ export function LoginForm() {
     try {
       const session = await signIn({ email, password })
       toast.success(`Hola, ${session.user.name}`)
+
+      if (!session.user.isVerified) {
+        router.push('/auth/confirmar')
+        return
+      }
+
       router.push(redirectTo ?? getPrimaryPath(session.user))
     } catch (err) {
       const message =

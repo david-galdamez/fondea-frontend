@@ -14,6 +14,7 @@ const TOKEN_KEY = 'auth_token'
 export const tokenStore = {
   get(): string | null {
     if (typeof window === 'undefined') return null
+    console.log('')
     return localStorage.getItem(TOKEN_KEY)
   },
   set(token: string): void {
@@ -69,7 +70,7 @@ export async function apiClient<T>(
     if (res.status === 403) throw new ForbiddenError(message)
     if (res.status === 404) throw new NotFoundError(message)
     if (res.status === 409) throw new ConflictError(message)
-    throw new ApiError(message, 'api_error', res.status)
+    throw new ApiError('Error inesperado de servidor', 'api_error', res.status)
   }
 
   return body.data

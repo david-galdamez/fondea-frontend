@@ -33,6 +33,7 @@ export interface LoginResponse {
   city?: string
   country?: string
   role: Role
+  isVerified: boolean
   createdAt: string
 }
 
@@ -46,6 +47,7 @@ function getUser(res: LoginResponse): User {
     bio: res.bio,
     city: res.city,
     country: res.country,
+    isVerified: res.isVerified,
   }
 
   return user
@@ -86,8 +88,12 @@ export const authService = {
   async getCurrentSession(): Promise<Session | null> {
     const token = tokenStore.get()
     if (!token) return null
-    const user = await api.get<User>('/api/auth/me')
-
-    return buildSession(user, token)
+    try {
+      const user = await api.get<User>('/api/auth/me')
+      return buildSession(user, token)
+    } catch {
+      tokenStore.clear()
+      return null
+    }
   },
 }
