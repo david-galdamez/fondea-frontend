@@ -3,16 +3,18 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { ChevronRight, ListChecks } from 'lucide-react'
-import type { Campaign, User } from '@/types'
+import type { User } from '@/types'
 import { adminService, usersService } from '@/lib/api'
 import { formatShortDate } from '@/lib/dates'
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
 import { MoneyDisplay } from '@/components/common/money-display'
 import { PageSkeleton } from '@/components/common/page-skeleton'
+import { CampaignReviewDto } from '@/lib/api/admin.service';
+import { money } from '@/lib/money';
 
 interface Data {
-  campaigns: Campaign[]
+  campaigns: CampaignReviewDto[]
   creatorsById: Map<string, User>
 }
 
@@ -25,8 +27,8 @@ export function ValidationQueue() {
   useEffect(() => {
     let cancelled = false
     async function load(): Promise<Data> {
-      const page = await adminService.listPendingReview(1, 100)
-      const creatorIds = Array.from(new Set(page.items.map((c) => c.creatorId)))
+      const page = await adminService.getPendingCampaigns()
+      const creatorIds = Array.from(new Set(page.map((c) => c.creatorId)))
       const users = await Promise.all(
         creatorIds.map((id) => usersService.getById(id).catch(() => null))
       )
@@ -34,7 +36,7 @@ export function ValidationQueue() {
       users.forEach((u) => {
         if (u) creatorsById.set(u.id, u)
       })
-      return { campaigns: page.items, creatorsById }
+      return { campaigns: page, creatorsById }
     }
     load()
       .then((d) => {
@@ -85,12 +87,12 @@ export function ValidationQueue() {
                   <p className="truncate text-sm font-medium">{c.title}</p>
                   <p className="text-muted-foreground text-xs">
                     Por {creator?.name ?? 'Creador desconocido'} · enviada{' '}
-                    {formatShortDate(c.updatedAt)}
+                    {formatShortDate(c.submittedAt)}
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-0.5 text-xs">
                   <span className="text-muted-foreground">Meta</span>
-                  <MoneyDisplay value={c.goal} className="text-sm font-medium" />
+                  <MoneyDisplay value={money(Math.round(c.goalAmount * 100))} className="text-sm font-medium" />
                 </div>
                 <ChevronRight
                   className="text-muted-foreground size-4 shrink-0"

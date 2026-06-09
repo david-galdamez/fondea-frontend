@@ -1,66 +1,89 @@
-import type { Campaign, CampaignStatus, ID, Paginated } from '@/types'
-import { COMMISSION_RATE, DEFAULT_PAGE_SIZE } from '@/lib/constants'
-import { nowISO, paginate, simulateNetwork } from './client'
-import { ForbiddenError, NotFoundError } from './errors'
-import { campaignsStore } from './_stores'
+import { api } from '../client'
+import type { CampaignStatus, CampaignSummaryDto } from './campaigns.service'
+import type { WithdrawalStatus } from './withdrawals.service'
+
+export interface CampaignReviewDto {
+  id: string
+  title: string
+  description: string
+  creatorId: string
+  creatorName: string
+  creatorEmail: string
+  goalAmount: number
+  isFlexibleGoal: boolean
+  deadline: string
+  categoryName: string
+  locationCity: string
+  submittedAt: string
+}
+
+export interface CampaignStatusDto {
+  id: string
+  title: string
+  status: CampaignStatus
+}
+
+export interface AdminWithdrawalDto {
+  id: string
+  campaignId: string
+  campaignTitle: string
+  grossAmount: number
+  commissionAmount: number
+  netAmount: number
+  status: WithdrawalStatus
+  requestedAt: string
+  paidAt: string | null
+}
+
+export type FraudReportStatus = 'PENDING' | 'REVIEWED' | 'DISMISSED'
+
+export interface FraudReportDto {
+  id: string
+  reporterId: string
+  reporterName: string
+  reporterEmail: string
+  campaignId: string
+  campaignTitle: string
+  reason: string
+  status: FraudReportStatus
+  createdAt: string
+}
 
 export const adminService = {
-  async listPendingReview(page = 1, pageSize = DEFAULT_PAGE_SIZE): Promise<Paginated<Campaign>> {
-    await simulateNetwork()
-    const items = campaignsStore
-      .filter((c) => c.status === 'pending_review')
-      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-    return paginate(items, page, pageSize)
+
+  listAll(): Promise<CampaignSummaryDto[]> {
+    return api.get<CampaignSummaryDto[]>('/api/admin/campaigns');
   },
 
-  async listAll(
-    filters: { status?: CampaignStatus; featured?: boolean } = {}
-  ): Promise<Campaign[]> {
-    await simulateNetwork()
-    return campaignsStore.filter((c) => {
-      if (filters.status && c.status !== filters.status) return false
-      if (filters.featured !== undefined && c.featured !== filters.featured) return false
-      return true
-    })
+  getPendingCampaigns(): Promise<CampaignReviewDto[]> {
+    return api.get<CampaignReviewDto[]>('/api/admin/campaigns/pending')
   },
 
-  async approveCampaign(id: ID): Promise<Campaign> {
-    await simulateNetwork()
-    const existing = campaignsStore.findById(id)
-    if (!existing) throw new NotFoundError('Campaña')
-    if (existing.status !== 'pending_review') {
-      throw new ForbiddenError('Solo se pueden aprobar campañas en revisión')
-    }
-    const now = nowISO()
-    const updated = campaignsStore.update(id, {
-      status: 'active',
-      approvedAt: now,
-      updatedAt: now,
-    })
-    if (!updated) throw new NotFoundError('Campaña')
-    return updated
+  approveCampaign(id: string): Promise<CampaignStatusDto> {
+    return api.post<CampaignStatusDto>(`/api/admin/campaigns/${id}/approve`, {})
   },
 
-  async rejectCampaign(id: ID, reason: string): Promise<Campaign> {
-    await simulateNetwork()
-    const updated = campaignsStore.update(id, {
-      status: 'rejected',
-      rejectionReason: reason,
-      updatedAt: nowISO(),
-    })
-    if (!updated) throw new NotFoundError('Campaña')
-    return updated
+  rejectCampaign(id: string): Promise<CampaignStatusDto> {
+    return api.post<CampaignStatusDto>(`/api/admin/campaigns/${id}/reject`, {})
   },
 
-  async setFeatured(id: ID, featured: boolean): Promise<Campaign> {
-    await simulateNetwork()
-    const updated = campaignsStore.update(id, { featured, updatedAt: nowISO() })
-    if (!updated) throw new NotFoundError('Campaña')
-    return updated
+  getPendingWithdrawals(): Promise<AdminWithdrawalDto[]> {
+    return api.get<AdminWithdrawalDto[]>('/api/admin/withdrawals/pending')
   },
 
-  async getCommissionRate(): Promise<number> {
-    await simulateNetwork()
-    return COMMISSION_RATE
+  approveWithdrawal(id: string): Promise<AdminWithdrawalDto> {
+    return api.post<AdminWithdrawalDto>(`/api/admin/withdrawals/${id}/approve`, {})
+  },
+
+  rejectWithdrawal(id: string): Promise<AdminWithdrawalDto> {
+    return api.post<AdminWithdrawalDto>(`/api/admin/withdrawals/${id}/reject`, {})
+  },
+
+  getPendingFraudReports(): Promise<FraudReportDto[]> {
+    return api.get<FraudReportDto[]>('/api/admin/fraud-reports')
+  },
+
+  reviewFraudReport(id: string): Promise<FraudReportDto> {
+    return api.post<FraudReportDto>(`/api/admin/fraud-reports/${id}/review`, {})
   },
 }

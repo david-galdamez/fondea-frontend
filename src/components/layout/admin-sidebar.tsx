@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Flag, LayoutDashboard, ListChecks, Megaphone, Users } from 'lucide-react'
-import { adminService, fraudService } from '@/lib/api'
+import { adminService } from '@/lib/api'
 import { SidebarNav, type SidebarNavItem } from './sidebar-nav'
 
 interface AdminBadges {
@@ -15,12 +15,12 @@ export function AdminSidebar() {
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([adminService.listPendingReview(1, 1), fraudService.listAll('open', 1, 1)]).then(
+    Promise.all([adminService.getPendingCampaigns(), adminService.getPendingFraudReports()]).then(
       ([pending, fraudOpen]) => {
         if (cancelled) return
         setBadges({
-          pendingReview: pending.total,
-          openFraud: fraudOpen.total,
+          pendingReview: pending.length,
+          openFraud: fraudOpen.length,
         })
       }
     )

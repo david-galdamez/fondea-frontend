@@ -2,27 +2,21 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { ArrowRight, Banknote, Flag, ListChecks, Megaphone } from 'lucide-react'
-import type { Campaign, FraudReport, Withdrawal } from '@/types'
-import { adminService, fraudService, withdrawalsService, usersService } from '@/lib/api'
-import { addMoney, zeroMoney } from '@/lib/money'
+import { ArrowRight, Banknote, Flag, ListChecks } from 'lucide-react'
+import { adminService } from '@/lib/api'
+import { money } from '@/lib/money'
 import { formatShortDate } from '@/lib/dates'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
 import { MoneyDisplay } from '@/components/common/money-display'
 import { PageSkeleton } from '@/components/common/page-skeleton'
-import { StatusBadge } from '@/components/campaigns/status-badge'
+import type { CampaignReviewDto, AdminWithdrawalDto, FraudReportDto } from '@/lib/api/admin.service'
 
 interface DashboardData {
-  pendingCount: number
-  openFraudCount: number
-  totalUsers: number
-  totalRaised: ReturnType<typeof zeroMoney>
-  totalCommissions: ReturnType<typeof zeroMoney>
-  recentPending: Campaign[]
-  recentOpenFraud: FraudReport[]
-  campaignsById: Map<string, Campaign>
+  pendingCampaigns: CampaignReviewDto[]
+  pendingWithdrawals: AdminWithdrawalDto[]
+  pendingFraudReports: FraudReportDto[]
 }
 
 export function AdminDashboard() {
@@ -33,61 +27,31 @@ export function AdminDashboard() {
 
   useEffect(() => {
     let cancelled = false
-
-    async function load(): Promise<DashboardData> {
-      const [pendingPage, openFraudPage, users, allCampaigns] = await Promise.all([
-        adminService.listPendingReview(1, 3),
-        fraudService.listAll('open', 1, 3),
-        usersService.list(),
-        adminService.listAll(),
-      ])
-      const creatorIds = Array.from(new Set(allCampaigns.map((c) => c.creatorId)))
-      const allWithdrawals = (
-        await Promise.all(creatorIds.map((id) => withdrawalsService.listByCreator(id)))
-      ).flat()
-      const totalRaised = allCampaigns.reduce<ReturnType<typeof zeroMoney>>(
-        (acc, c) => addMoney(acc, c.raised),
-        zeroMoney()
-      )
-      const totalCommissions = allWithdrawals
-        .filter((w: Withdrawal) => w.status === 'paid' || w.status === 'approved')
-        .reduce<ReturnType<typeof zeroMoney>>((acc, w) => addMoney(acc, w.commission), zeroMoney())
-      const campaignsById = new Map<string, Campaign>()
-      allCampaigns.forEach((c) => campaignsById.set(c.id, c))
-
-      return {
-        pendingCount: pendingPage.total,
-        openFraudCount: openFraudPage.total,
-        totalUsers: users.length,
-        totalRaised,
-        totalCommissions,
-        recentPending: pendingPage.items,
-        recentOpenFraud: openFraudPage.items,
-        campaignsById,
-      }
-    }
-
-    load()
-      .then((d) => {
-        if (!cancelled) {
-          setData(d)
-          setError(false)
-          setLoading(false)
-        }
+    Promise.all([
+      adminService.getPendingCampaigns(),
+      adminService.getPendingWithdrawals(),
+      adminService.getPendingFraudReports(),
+    ])
+      .then(([pendingCampaigns, pendingWithdrawals, pendingFraudReports]) => {
+        if (cancelled) return
+        setData({ pendingCampaigns, pendingWithdrawals, pendingFraudReports })
+        setError(false)
+        setLoading(false)
       })
       .catch(() => {
-        if (!cancelled) {
-          setError(true)
-          setLoading(false)
-        }
+        if (cancelled) return
+        setError(true)
+        setLoading(false)
       })
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [retryKey])
 
   if (error) return <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
   if (loading || !data) return <PageSkeleton variant="summary" />
+
+  const totalPendingWithdrawals = data.pendingWithdrawals.reduce(
+    (acc, w) => acc + w.netAmount, 0
+  )
 
   return (
     <div className="flex flex-col gap-8">
@@ -98,34 +62,35 @@ export function AdminDashboard() {
         </p>
       </header>
 
-      <section aria-label="Estadísticas" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Stats */}
+      <section aria-label="Estadísticas" className="grid gap-3 sm:grid-cols-3">
         <StatCard
           icon={ListChecks}
-          label="Pendientes de revisión"
-          value={String(data.pendingCount)}
+          label="Campañas en revisión"
+          value={String(data.pendingCampaigns.length)}
         />
-        <StatCard icon={Flag} label="Reportes abiertos" value={String(data.openFraudCount)} />
         <StatCard
           icon={Banknote}
-          label="Comisiones acumuladas"
-          value={<MoneyDisplay value={data.totalCommissions} />}
+          label="Retiros pendientes"
+          value={String(data.pendingWithdrawals.length)}
         />
         <StatCard
-          icon={Megaphone}
-          label="Recaudado total"
-          value={<MoneyDisplay value={data.totalRaised} />}
+          icon={Flag}
+          label="Reportes de fraude"
+          value={String(data.pendingFraudReports.length)}
         />
       </section>
 
+      {/* Campañas pendientes */}
       <section className="flex flex-col gap-3">
         <header className="flex items-baseline justify-between gap-2">
-          <h2 className="text-lg font-semibold">Pendientes de revisión</h2>
+          <h2 className="text-lg font-semibold">Campañas pendientes de revisión</h2>
           <Button render={<Link href="/admin/validacion" />} variant="ghost" size="sm">
-            Ver cola
+            Ver todas
             <ArrowRight className="size-4" />
           </Button>
         </header>
-        {data.recentPending.length === 0 ? (
+        {data.pendingCampaigns.length === 0 ? (
           <EmptyState
             icon={ListChecks}
             title="Sin campañas en revisión"
@@ -133,7 +98,7 @@ export function AdminDashboard() {
           />
         ) : (
           <div className="flex flex-col gap-2">
-            {data.recentPending.map((c) => (
+            {data.pendingCampaigns.slice(0, 3).map((c) => (
               <Link
                 key={c.id}
                 href={`/admin/validacion/${c.id}`}
@@ -142,10 +107,9 @@ export function AdminDashboard() {
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <p className="truncate text-sm font-medium">{c.title}</p>
                   <p className="text-muted-foreground text-xs">
-                    Enviada el {formatShortDate(c.updatedAt)}
+                    {c.creatorName} · Enviada el {formatShortDate(c.submittedAt)}
                   </p>
                 </div>
-                <StatusBadge status={c.status} />
                 <ArrowRight className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
               </Link>
             ))}
@@ -153,61 +117,87 @@ export function AdminDashboard() {
         )}
       </section>
 
+      {/* Retiros pendientes */}
       <section className="flex flex-col gap-3">
         <header className="flex items-baseline justify-between gap-2">
-          <h2 className="text-lg font-semibold">Reportes de fraude abiertos</h2>
+          <h2 className="text-lg font-semibold">Retiros pendientes</h2>
+          <Button render={<Link href="/admin/retiros" />} variant="ghost" size="sm">
+            Ver todos
+            <ArrowRight className="size-4" />
+          </Button>
+        </header>
+        {data.pendingWithdrawals.length === 0 ? (
+          <EmptyState icon={Banknote} title="Sin retiros pendientes" />
+        ) : (
+          <div className="flex flex-col gap-2">
+            {data.pendingWithdrawals.slice(0, 3).map((w) => (
+              <div
+                key={w.id}
+                className="border-border bg-card flex items-center gap-3 rounded-lg border p-4"
+              >
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <p className="truncate text-sm font-medium">{w.campaignTitle}</p>
+                  <p className="text-muted-foreground text-xs">
+                    Solicitado el {formatShortDate(w.requestedAt)}
+                  </p>
+                </div>
+                <MoneyDisplay
+                  value={money(Math.round(w.netAmount * 100))}
+                  className="text-sm font-medium"
+                />
+              </div>
+            ))}
+            {data.pendingWithdrawals.length > 0 && (
+              <p className="text-muted-foreground text-xs">
+                Total en espera:{' '}
+                <MoneyDisplay
+                  value={money(Math.round(totalPendingWithdrawals * 100))}
+                  className="text-foreground font-medium"
+                />
+              </p>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* Reportes de fraude */}
+      <section className="flex flex-col gap-3">
+        <header className="flex items-baseline justify-between gap-2">
+          <h2 className="text-lg font-semibold">Reportes de fraude pendientes</h2>
           <Button render={<Link href="/admin/fraude" />} variant="ghost" size="sm">
             Ver todos
             <ArrowRight className="size-4" />
           </Button>
         </header>
-        {data.recentOpenFraud.length === 0 ? (
-          <EmptyState icon={Flag} title="Sin reportes abiertos" />
+        {data.pendingFraudReports.length === 0 ? (
+          <EmptyState icon={Flag} title="Sin reportes pendientes" />
         ) : (
           <div className="flex flex-col gap-2">
-            {data.recentOpenFraud.map((report) => {
-              const campaign = data.campaignsById.get(report.campaignId)
-              return (
-                <Link
-                  key={report.id}
-                  href={`/admin/fraude/${report.id}`}
-                  className="group border-border bg-card hover:border-foreground/20 flex items-center gap-3 rounded-lg border p-4 transition-colors"
-                >
-                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <p className="truncate text-sm font-medium">
-                      {campaign?.title ?? 'Campaña eliminada'}
-                    </p>
-                    <p className="text-muted-foreground line-clamp-1 text-xs">{report.details}</p>
-                  </div>
-                  <span className="text-muted-foreground text-xs">
-                    {formatShortDate(report.createdAt)}
-                  </span>
-                  <ArrowRight
-                    className="text-muted-foreground size-4 shrink-0"
-                    aria-hidden="true"
-                  />
-                </Link>
-              )
-            })}
+            {data.pendingFraudReports.slice(0, 3).map((r) => (
+              <Link
+                key={r.id}
+                href={`/admin/fraude/${r.id}`}
+                className="group border-border bg-card hover:border-foreground/20 flex items-center gap-3 rounded-lg border p-4 transition-colors"
+              >
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <p className="truncate text-sm font-medium">{r.campaignTitle}</p>
+                  <p className="text-muted-foreground line-clamp-1 text-xs">{r.reason}</p>
+                  <p className="text-muted-foreground text-xs">
+                    Por {r.reporterName} · {formatShortDate(r.createdAt)}
+                  </p>
+                </div>
+                <ArrowRight className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
+              </Link>
+            ))}
           </div>
         )}
-      </section>
-
-      <section className="border-border bg-muted/30 flex flex-col gap-1 rounded-lg border p-4 text-sm">
-        <span className="text-muted-foreground">Usuarios registrados</span>
-        <Link
-          href="/admin/usuarios"
-          className="text-lg font-semibold underline-offset-4 hover:underline"
-        >
-          {data.totalUsers}
-        </Link>
       </section>
     </div>
   )
 }
 
 interface StatCardProps {
-  icon: typeof Megaphone
+  icon: typeof ListChecks
   label: string
   value: React.ReactNode
 }
