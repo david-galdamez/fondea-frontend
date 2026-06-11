@@ -155,6 +155,7 @@ export const SEED_CAMPAIGNS: readonly Campaign[] = [
     durationDays: 30,
     status: 'draft',
     featured: false,
+    coverImageUrl: '',
     gallery: [],
     creatorId: 'usr-backer-3',
     createdAt: daysFromNow(-1),

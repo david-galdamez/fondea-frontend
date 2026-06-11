@@ -1,4 +1,5 @@
 import { api } from "../client";
+import { RewardSummaryDto } from "./rewards.service";
 
 export type CampaignStatus =
   | 'DRAFT'
@@ -31,15 +32,6 @@ export interface CampaignSummaryDto {
   featured: boolean
 }
 
-export interface RewardSummaryDto {
-  id: string
-  title: string
-  description: string
-  minAmount: number
-  estimatedDelivery?: string
-  stock?: number
-}
-
 export interface FaqDto {
   question: string
   answer: string
@@ -49,6 +41,7 @@ export interface CampaignDetailDto {
   id: string
   title: string
   description: string
+  coverImageUrl: string
   creatorName: string
   creatorId: string
   goalAmount: number
@@ -56,13 +49,16 @@ export interface CampaignDetailDto {
   pledgeCount: number
   daysLeft: number
   deadline: string
+  createdAt: string
   isFlexibleGoal: boolean
   status: CampaignStatus
   categoryId: string
   locationId: string
+  country: string
   city: string
   rewards: RewardSummaryDto[]
   faqs: FaqDto[]
+  rejectionReason?: string
 }
 
 export interface MyCampaignDto {
@@ -75,6 +71,7 @@ export interface MyCampaignDto {
   status: CampaignStatus
   daysLeft: number
   availableToWithdraw: number | null
+  rejectionReason?: string
 }
 
 export interface CampaignDraftDto {

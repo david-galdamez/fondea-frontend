@@ -29,7 +29,7 @@ export function StepReview({ fields, rewards, faqs, categories }: StepReviewProp
         <DataRow label="Categoría" value={category?.name ?? '—'} />
         <DataRow
           label="Ubicación"
-          value={fields.city}
+          value={fields.city || '—'}
         />
       </div>
 

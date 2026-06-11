@@ -1,9 +1,10 @@
-import type { Reward } from '@/types'
 import { cn } from '@/lib/utils'
 import { MoneyDisplay } from '@/components/common/money-display'
+import { RewardSummaryDto } from '@/lib/api/rewards.service';
+import { money } from '@/lib/money';
 
 interface RewardCardProps {
-  reward: Reward
+  reward: RewardSummaryDto
   className?: string
 }
 
@@ -14,7 +15,7 @@ function formatDeliveryDate(iso?: string): string | null {
 }
 
 export function RewardCard({ reward, className }: RewardCardProps) {
-  const remaining = reward.stock !== undefined ? Math.max(0, reward.stock - reward.claimed) : null
+  const remaining = reward.stock !== undefined ? Math.max(0, reward.stock) : null
   const soldOut = remaining === 0
   const delivery = formatDeliveryDate(reward.estimatedDelivery)
 
@@ -29,7 +30,7 @@ export function RewardCard({ reward, className }: RewardCardProps) {
       <div className="flex items-baseline justify-between gap-2">
         <h3 className="text-sm font-semibold">{reward.title}</h3>
         <span className="text-foreground text-sm font-medium">
-          desde <MoneyDisplay value={reward.minAmount} />
+          desde <MoneyDisplay value={money(Math.round(reward.minAmount * 100))} />
         </span>
       </div>
       <p className="text-muted-foreground text-sm whitespace-pre-wrap">{reward.description}</p>
@@ -44,12 +45,6 @@ export function RewardCard({ reward, className }: RewardCardProps) {
           <div className="flex flex-col">
             <dt className="font-medium">Disponibilidad</dt>
             <dd>{soldOut ? 'Agotada' : `${remaining} disponibles de ${reward.stock}`}</dd>
-          </div>
-        )}
-        {reward.shippingRegions && reward.shippingRegions.length > 0 && (
-          <div className="flex flex-col">
-            <dt className="font-medium">Envíos a</dt>
-            <dd>{reward.shippingRegions.join(', ')}</dd>
           </div>
         )}
       </dl>

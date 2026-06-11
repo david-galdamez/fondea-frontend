@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { CalendarClock, ExternalLink, MessageSquare, Pencil, Users } from 'lucide-react'
+import { AlertTriangle, CalendarClock, ExternalLink, MessageSquare, Pencil, Users } from 'lucide-react'
 import { formatShortDate } from '@/lib/dates'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/campaigns/status-badge'
@@ -13,6 +13,7 @@ interface CreatorCampaignCardProps {
 
 export function CreatorCampaignCard({ campaign }: CreatorCampaignCardProps) {
   const isEditable = campaign.status === 'DRAFT'
+  const wasRejected = campaign.status === 'DRAFT' && !!campaign.rejectionReason
   const hasPublicPage =
     campaign.status === 'ACTIVE' ||
     campaign.status === 'SUCCESSFUL' ||
@@ -20,6 +21,15 @@ export function CreatorCampaignCard({ campaign }: CreatorCampaignCardProps) {
 
   return (
     <article className="border-border bg-card flex flex-col gap-4 rounded-lg border p-4">
+      {wasRejected && (
+        <div className="bg-destructive/10 text-destructive flex items-start gap-2 rounded-md px-3 py-2 text-sm">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+          <div>
+            <p className="font-medium">Campaña rechazada</p>
+            <p>{campaign.rejectionReason}</p>
+          </div>
+        </div>
+      )}
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <h3 className="truncate text-base font-semibold">{campaign.title}</h3>

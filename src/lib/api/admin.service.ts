@@ -1,6 +1,7 @@
 import { api } from '../client'
-import type { CampaignStatus, CampaignSummaryDto } from './campaigns.service'
+import type { CampaignStatus } from './campaigns.service'
 import type { WithdrawalStatus } from './withdrawals.service'
+import type { FraudReportStatus } from './fraud.service'
 
 export interface CampaignReviewDto {
   id: string
@@ -15,6 +16,7 @@ export interface CampaignReviewDto {
   categoryName: string
   locationCity: string
   submittedAt: string
+  rejectionReason?: string
 }
 
 export interface CampaignStatusDto {
@@ -35,8 +37,6 @@ export interface AdminWithdrawalDto {
   paidAt: string | null
 }
 
-export type FraudReportStatus = 'PENDING' | 'REVIEWED' | 'DISMISSED'
-
 export interface FraudReportDto {
   id: string
   reporterId: string
@@ -46,25 +46,30 @@ export interface FraudReportDto {
   campaignTitle: string
   reason: string
   status: FraudReportStatus
+  resolutionNotes?: string
   createdAt: string
+  resolvedAt?: string
 }
 
 export const adminService = {
 
-  listAll(): Promise<CampaignSummaryDto[]> {
-    return api.get<CampaignSummaryDto[]>('/api/admin/campaigns');
+  listAll() {
+    return api.get<import('./campaigns.service').CampaignSummaryDto[]>('/api/admin/campaigns')
   },
 
   getPendingCampaigns(): Promise<CampaignReviewDto[]> {
     return api.get<CampaignReviewDto[]>('/api/admin/campaigns/pending')
   },
 
-  approveCampaign(id: string): Promise<CampaignStatusDto> {
-    return api.post<CampaignStatusDto>(`/api/admin/campaigns/${id}/approve`, {})
+  approveCampaign(id: string) {
+    return api.post<import('./campaigns.service').CampaignDetailDto>(`/api/admin/campaigns/${id}/approve`, {})
   },
 
-  rejectCampaign(id: string): Promise<CampaignStatusDto> {
-    return api.post<CampaignStatusDto>(`/api/admin/campaigns/${id}/reject`, {})
+  rejectCampaign(id: string, rejectionReason?: string) {
+    return api.post<import('./campaigns.service').CampaignDetailDto>(
+      `/api/admin/campaigns/${id}/reject`,
+      { rejectionReason }
+    )
   },
 
   getPendingWithdrawals(): Promise<AdminWithdrawalDto[]> {
@@ -85,5 +90,13 @@ export const adminService = {
 
   reviewFraudReport(id: string): Promise<FraudReportDto> {
     return api.post<FraudReportDto>(`/api/admin/fraud-reports/${id}/review`, {})
+  },
+
+  resolveFraudReport(id: string, resolutionNotes?: string): Promise<FraudReportDto> {
+    return api.post<FraudReportDto>(`/api/admin/fraud-reports/${id}/resolve`, { resolutionNotes })
+  },
+
+  dismissFraudReport(id: string, resolutionNotes?: string): Promise<FraudReportDto> {
+    return api.post<FraudReportDto>(`/api/admin/fraud-reports/${id}/dismiss`, { resolutionNotes })
   },
 }

@@ -14,7 +14,6 @@ const TOKEN_KEY = 'auth_token'
 export const tokenStore = {
   get(): string | null {
     if (typeof window === 'undefined') return null
-    console.log('')
     return localStorage.getItem(TOKEN_KEY)
   },
   set(token: string): void {

@@ -4,7 +4,7 @@ export const SEED_NOTIFICATIONS: readonly Notification[] = [
   {
     id: 'ntf-1',
     userId: 'usr-backer-1',
-    type: 'campaign_near_goal',
+    type: 'NEAR_GOAL',
     title: 'Una campaña que apoyas está cerca de su meta',
     body: '"Lámpara modular eco-friendly" lleva el 82% de su meta. Faltan 10 días.',
     entityRef: { type: 'campaign', id: 'cmp-1' },
@@ -14,7 +14,7 @@ export const SEED_NOTIFICATIONS: readonly Notification[] = [
   {
     id: 'ntf-2',
     userId: 'usr-backer-1',
-    type: 'pledge_charged',
+    type: 'PLEDGE_CHARGED',
     title: 'Tu pledge fue cobrado',
     body: 'La campaña "Mural comunitario Barrio Azul" alcanzó su meta y se procesó tu pledge.',
     entityRef: { type: 'pledge', id: 'pld-3' },
@@ -24,7 +24,7 @@ export const SEED_NOTIFICATIONS: readonly Notification[] = [
   {
     id: 'ntf-3',
     userId: 'usr-creator-1',
-    type: 'campaign_approved',
+    type: 'CAMPAIGN_APPROVED',
     title: 'Tu campaña fue aprobada',
     body: '"Lámpara modular eco-friendly" pasó la revisión y ya está activa.',
     entityRef: { type: 'campaign', id: 'cmp-1' },

@@ -3,9 +3,8 @@
 import { useEffect, useState } from 'react'
 import { Bell } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Notification } from '@/types'
+import type { Notification } from '@/lib/api/notifications.service'
 import { notificationsService } from '@/lib/api'
-import { useSession } from '@/components/providers/session-provider'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
@@ -13,9 +12,6 @@ import { RowsSkeleton } from '@/components/common/page-skeleton'
 import { NotificationItem } from './notification-item'
 
 export function NotificationsList() {
-  const { session } = useSession()
-  const userId = session?.user.id
-
   const [items, setItems] = useState<Notification[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -23,14 +19,13 @@ export function NotificationsList() {
   const [retryKey, setRetryKey] = useState(0)
 
   useEffect(() => {
-    if (!userId) return
     let cancelled = false
 
     notificationsService
-      .listForUser(userId, { unreadOnly, pageSize: 100 })
-      .then((res) => {
+      .list({ unreadOnly })
+      .then((data) => {
         if (cancelled) return
-        setItems(res.items)
+        setItems(data)
         setError(false)
         setLoading(false)
       })
@@ -40,37 +35,25 @@ export function NotificationsList() {
         setLoading(false)
       })
 
-    return () => {
-      cancelled = true
-    }
-  }, [userId, unreadOnly, retryKey])
+    return () => { cancelled = true }
+  }, [unreadOnly, retryKey])
 
   function handleRetry() {
     setError(false)
     setRetryKey((k) => k + 1)
   }
 
-  async function handleMarkRead(id: string) {
-    try {
-      await notificationsService.markRead(id)
-      setItems((prev) => (prev ? prev.map((n) => (n.id === id ? { ...n, read: true } : n)) : prev))
-    } catch {
-      toast.error('No pudimos marcar la notificación como leída.')
-    }
-  }
-
   async function handleMarkAllRead() {
-    if (!userId) return
     try {
-      await notificationsService.markAllRead(userId)
-      setItems((prev) => (prev ? prev.map((n) => ({ ...n, read: true })) : prev))
+      await notificationsService.markAllRead()
+      setItems((prev) => (prev ? prev.map((n) => ({ ...n, isRead: true })) : prev))
       toast.success('Marcadas como leídas')
     } catch {
       toast.error('No pudimos actualizar las notificaciones.')
     }
   }
 
-  const hasUnread = items?.some((n) => !n.read) ?? false
+  const hasUnread = items?.some((n) => !n.isRead) ?? false
 
   return (
     <div className="flex flex-col gap-6">
@@ -114,7 +97,7 @@ export function NotificationsList() {
       ) : (
         <div className="flex flex-col gap-2">
           {items.map((n) => (
-            <NotificationItem key={n.id} notification={n} onMarkRead={handleMarkRead} />
+            <NotificationItem key={n.id} notification={n} />
           ))}
         </div>
       )}

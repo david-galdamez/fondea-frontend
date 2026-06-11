@@ -1,7 +1,4 @@
 import type { Role, User } from '@/types'
-import { simulateNetwork } from './client'
-import { NotFoundError } from './errors'
-import { usersStore } from './_stores'
 import { api } from '../client';
 
 export interface UserDto {
@@ -15,29 +12,30 @@ export interface UserDto {
 
 export type UpdateUserPatch = Partial<Pick<User, 'name' | 'city' | 'country' | 'bio'>>
 
+function mapUser(dto: UserDto): User {
+  return {
+    id: dto.id,
+    name: dto.name,
+    email: dto.email,
+    role: dto.role,
+    isVerified: dto.isVerified,
+    createdAt: dto.createdAt,
+  }
+}
+
 export const usersService = {
   async getById(id: string): Promise<User> {
-    await simulateNetwork()
-    const user = usersStore.findById(id)
-    if (!user) throw new NotFoundError('Usuario')
-    return user
+    const dto = await api.get<UserDto>(`/api/users/${id}`)
+    return mapUser(dto)
   },
 
   async list(): Promise<User[]> {
-    await simulateNetwork()
-    return usersStore.all()
+    const dtos = await api.get<UserDto[]>('/api/users')
+    return dtos.map(mapUser)
   },
 
   async updateProfile(patch: UpdateUserPatch): Promise<User> {
     const res = await api.put<UserDto>('/api/auth/update-profile', patch)
-    const user: User = {
-      id: res.id,
-      name: res.name,
-      email: res.email,
-      role: res.role,
-      isVerified: res.isVerified,
-      createdAt: res.createdAt
-    }
-    return user;
+    return mapUser(res)
   },
 }

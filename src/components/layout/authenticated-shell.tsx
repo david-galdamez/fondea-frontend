@@ -34,20 +34,17 @@ export function AuthenticatedShell({ requiredRole, sidebar, children }: Authenti
   }, [isLoading, session, requiredRole, router])
 
   useEffect(() => {
-    if (!userId) return
     let cancelled = false
     notificationsService
-      .countUnread(userId)
+      .countUnread()
       .then((count) => {
         if (!cancelled) setUnreadCount(count)
       })
       .catch(() => {
         if (!cancelled) setUnreadCount(0)
       })
-    return () => {
-      cancelled = true
-    }
-  }, [userId, pathname, unreadKey])
+    return () => { cancelled = true }
+  }, [pathname, unreadKey])
 
   useEffect(() => {
     if (isLoading) return

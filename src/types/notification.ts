@@ -1,15 +1,15 @@
 import type { ID, ISODateString } from './common'
 
 export type NotificationType =
-  | 'campaign_near_goal'
-  | 'campaign_approved'
-  | 'campaign_rejected'
-  | 'campaign_successful'
-  | 'campaign_failed'
-  | 'pledge_charged'
-  | 'pledge_refunded'
-  | 'new_update'
-  | 'fraud_report_update'
+  | 'NEAR_GOAL'
+  | 'CAMPAIGN_ENDED'
+  | 'CAMPAIGN_APPROVED'
+  | 'CAMPAIGN_REJECTED'
+  | 'PLEDGE_CHARGED'
+  | 'PLEDGE_REFUNDED'
+  | 'NEW_UPDATE'
+  | 'FRAUD_REPORT_RESOLVED'
+  | 'FRAUD_REPORT_DISMISSED'
 
 export type NotificationEntityType = 'campaign' | 'pledge' | 'fraud_report'
 

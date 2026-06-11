@@ -3,6 +3,8 @@ export type ISODateString = string
 
 export type Currency = 'USD'
 
+export type ID = string
+
 export interface Money {
   amount: number
   currency: Currency

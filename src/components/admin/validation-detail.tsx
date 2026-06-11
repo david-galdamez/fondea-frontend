@@ -5,14 +5,13 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Check, ChevronLeft, Sparkles, X } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Campaign, Category, FAQ, Reward, User } from '@/types'
+import type { User } from '@/types'
 import {
   ApiError,
   adminService,
   campaignsService,
   categoriesService,
   faqsService,
-  rewardsService,
   usersService,
 } from '@/lib/api'
 import { formatLongDate } from '@/lib/dates'
@@ -27,17 +26,20 @@ import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
 import { MoneyDisplay } from '@/components/common/money-display'
 import { PageSkeleton } from '@/components/common/page-skeleton'
+import { CampaignDetailDto } from '@/lib/api/campaigns.service';
+import { Category } from '@/lib/api/categories.service';
+import { money } from '@/lib/money';
+import { FaqDto } from '@/lib/api/faqs.service';
 
 interface ValidationDetailProps {
   campaignId: string
 }
 
 interface Data {
-  campaign: Campaign
+  campaign: CampaignDetailDto
   creator: User | null
   category: Category | null
-  rewards: Reward[]
-  faqs: FAQ[]
+  faqs: FaqDto[]
 }
 
 export function ValidationDetail({ campaignId }: ValidationDetailProps) {
@@ -54,15 +56,14 @@ export function ValidationDetail({ campaignId }: ValidationDetailProps) {
     let cancelled = false
     async function load(): Promise<Data> {
       const campaign = await campaignsService.getById(campaignId)
-      const [creator, category, rewards, faqs] = await Promise.all([
+      const [creator, category, faqs] = await Promise.all([
         usersService.getById(campaign.creatorId).catch(() => null),
         categoriesService
           .list()
           .then((all) => all.find((c) => c.id === campaign.categoryId) ?? null),
-        rewardsService.listByCampaign(campaign.id),
-        faqsService.listByCampaign(campaign.id),
+        faqsService.listPublic(campaignId)
       ])
-      return { campaign, creator, category, rewards, faqs }
+      return { campaign, creator, category, faqs }
     }
     load()
       .then((d) => {
@@ -113,25 +114,11 @@ export function ValidationDetail({ campaignId }: ValidationDetailProps) {
     }
   }
 
-  async function handleToggleFeatured() {
-    if (!data) return
-    setBusy(true)
-    try {
-      const updated = await adminService.setFeatured(campaignId, !data.campaign.featured)
-      setData((prev) => (prev ? { ...prev, campaign: updated } : prev))
-      toast.success(updated.featured ? 'Marcada como destacada' : 'Quitada de destacadas')
-    } catch (err) {
-      const message = err instanceof ApiError ? err.message : 'No pudimos actualizar la campaña'
-      toast.error(message)
-    }
-    setBusy(false)
-  }
-
   if (error) return <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
   if (loading || !data) return <PageSkeleton variant="detail" />
 
-  const { campaign, creator, category, rewards, faqs } = data
-  const isPending = campaign.status === 'pending_review'
+  const { campaign, creator, category, faqs } = data
+  const isPending = campaign.status === 'UNDER_REVIEW'
 
   return (
     <div className="flex flex-col gap-6">
@@ -146,7 +133,6 @@ export function ValidationDetail({ campaignId }: ValidationDetailProps) {
       <header className="flex flex-col gap-3">
         {campaign.coverImageUrl && (
           <div className="bg-muted aspect-[16/9] w-full overflow-hidden rounded-lg">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={campaign.coverImageUrl}
               alt={`Portada de ${campaign.title}`}
@@ -157,19 +143,13 @@ export function ValidationDetail({ campaignId }: ValidationDetailProps) {
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={campaign.status} />
           {category && <CategoryBadge category={category} />}
-          <LocationBadge location={campaign.location} />
-          {campaign.featured && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-              <Sparkles className="size-3" />
-              Destacada
-            </span>
-          )}
+          <LocationBadge city={campaign.city} country={campaign.country} />
         </div>
         <h1 className="text-3xl font-semibold tracking-tight">{campaign.title}</h1>
-        <p className="text-muted-foreground">{campaign.summary}</p>
+        <p className="text-muted-foreground">{campaign.description}</p>
         <p className="text-muted-foreground text-xs">
           Por {creator?.name ?? 'Creador desconocido'}
-          {creator?.email && ` · ${creator.email}`} · enviada {formatLongDate(campaign.updatedAt)}
+          {creator?.email && ` · ${creator.email}`} · enviada {formatLongDate(campaign.createdAt)}
         </p>
       </header>
 
@@ -182,11 +162,11 @@ export function ValidationDetail({ campaignId }: ValidationDetailProps) {
             </div>
           </section>
 
-          {rewards.length > 0 && (
+          {campaign.rewards.length > 0 && (
             <section className="flex flex-col gap-3">
-              <h2 className="text-lg font-semibold">Recompensas ({rewards.length})</h2>
+              <h2 className="text-lg font-semibold">Recompensas ({campaign.rewards.length})</h2>
               <div className="flex flex-col gap-3">
-                {rewards.map((r) => (
+                {campaign.rewards.map((r) => (
                   <RewardCard key={r.id} reward={r} />
                 ))}
               </div>
@@ -222,39 +202,22 @@ export function ValidationDetail({ campaignId }: ValidationDetailProps) {
         <aside className="flex flex-col gap-4 lg:sticky lg:top-20 lg:self-start">
           <div className="border-border bg-card flex flex-col gap-4 rounded-lg border p-4">
             <CampaignProgress
-              raised={campaign.raised}
-              goal={campaign.goal}
-              backersCount={campaign.backersCount}
+              raised={money(Math.round(campaign.totalPledged * 100))}
+              goal={money(Math.round(campaign.goalAmount * 100))}
+              backersCount={campaign.pledgeCount}
             />
             <div className="flex flex-col gap-1 text-sm">
-              <DataRow label="Tipo" value={campaign.goalType === 'fixed' ? 'Fija' : 'Flexible'} />
-              <DataRow label="Duración" value={`${campaign.durationDays} días`} />
+              <DataRow label="Tipo" value={!campaign.isFlexibleGoal ? 'Fija' : 'Flexible'} />
+              <DataRow label="Fecha de cierre" value={`${campaign.deadline}`} />
               <DataRow
                 label="Meta"
-                value={<MoneyDisplay value={campaign.goal} className="font-medium" />}
+                value={<MoneyDisplay value={money(Math.round(campaign.goalAmount * 100))} className="font-medium" />}
               />
             </div>
           </div>
 
-          {campaign.rejectionReason && (
-            <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
-              <p className="font-medium">Motivo de rechazo previo</p>
-              <p>{campaign.rejectionReason}</p>
-            </div>
-          )}
-
           <div className="border-border bg-card flex flex-col gap-2 rounded-lg border p-4">
             <h2 className="text-sm font-semibold">Acciones</h2>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleToggleFeatured}
-              disabled={busy}
-            >
-              <Sparkles className="size-4" />
-              {campaign.featured ? 'Quitar de destacadas' : 'Marcar como destacada'}
-            </Button>
             {isPending ? (
               <>
                 <Button type="button" size="sm" onClick={handleApprove} disabled={busy}>
@@ -313,7 +276,7 @@ export function ValidationDetail({ campaignId }: ValidationDetailProps) {
               </>
             ) : (
               <p className="text-muted-foreground text-xs">
-                La campaña ya no está en revisión. Solo puedes alternar el estado destacada.
+                La campaña ya no está en revisión. No hay acciones disponibles.
               </p>
             )}
           </div>

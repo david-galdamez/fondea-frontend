@@ -3,21 +3,20 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { Bell, CheckCheck } from 'lucide-react'
-import type { Notification } from '@/types'
+import type { Notification } from '@/lib/api/notifications.service'
 import { notificationsService } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { NotificationItem } from '@/components/notifications/notification-item'
 
 interface NotificationBellProps {
-  userId?: string
   unreadCount?: number
   onChange?: () => void
 }
 
 const PREVIEW_LIMIT = 5
 
-export function NotificationBell({ userId, unreadCount = 0, onChange }: NotificationBellProps) {
+export function NotificationBell({ unreadCount = 0, onChange }: NotificationBellProps) {
   const hasUnread = unreadCount > 0
   const label = hasUnread ? `Notificaciones, ${unreadCount} sin leer` : 'Notificaciones'
 
@@ -27,14 +26,10 @@ export function NotificationBell({ userId, unreadCount = 0, onChange }: Notifica
   const [marking, setMarking] = useState(false)
 
   async function loadItems() {
-    if (!userId) return
     setLoading(true)
     try {
-      const page = await notificationsService.listForUser(userId, {
-        page: 1,
-        pageSize: PREVIEW_LIMIT,
-      })
-      setItems(page.items)
+      const all = await notificationsService.list()
+      setItems(all.slice(0, PREVIEW_LIMIT))
     } catch {
       setItems([])
     } finally {
@@ -47,22 +42,12 @@ export function NotificationBell({ userId, unreadCount = 0, onChange }: Notifica
     if (next) void loadItems()
   }
 
-  async function markRead(id: string) {
-    try {
-      await notificationsService.markRead(id)
-      setItems((prev) => (prev ? prev.map((n) => (n.id === id ? { ...n, read: true } : n)) : prev))
-      onChange?.()
-    } catch {
-      // silent — passive bell click should not toast
-    }
-  }
-
   async function markAllRead() {
-    if (!userId || marking) return
+    if (marking) return
     setMarking(true)
     try {
-      await notificationsService.markAllRead(userId)
-      setItems((prev) => (prev ? prev.map((n) => ({ ...n, read: true })) : prev))
+      await notificationsService.markAllRead()
+      setItems((prev) => (prev ? prev.map((n) => ({ ...n, isRead: true })) : prev))
       onChange?.()
     } finally {
       setMarking(false)
@@ -123,7 +108,7 @@ export function NotificationBell({ userId, unreadCount = 0, onChange }: Notifica
             <ul className="flex flex-col gap-2">
               {items.map((n) => (
                 <li key={n.id}>
-                  <NotificationItem notification={n} onMarkRead={markRead} />
+                  <NotificationItem notification={n} onMarkRead={() => {}} />
                 </li>
               ))}
             </ul>

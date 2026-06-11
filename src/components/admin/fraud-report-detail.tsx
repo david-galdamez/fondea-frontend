@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Check, ChevronLeft, Eye, X } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Campaign, FraudReason, FraudReport, User } from '@/types'
-import { ApiError, campaignsService, fraudService, usersService } from '@/lib/api'
+import { adminService, ApiError, campaignsService, fraudService, usersService } from '@/lib/api'
+import type { FraudReportDto, FraudReportStatus } from '@/lib/api/fraud.service'
+import type { CampaignSummaryDto } from '@/lib/api/campaigns.service'
 import { formatLongDate } from '@/lib/dates'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -18,17 +19,16 @@ interface FraudReportDetailProps {
 }
 
 interface Data {
-  report: FraudReport
-  campaign: Campaign | null
-  reporter: User | null
+  report: FraudReportDto
+  campaign: CampaignSummaryDto | null
+  reporterName: string
 }
 
-const REASON_LABEL: Record<FraudReason, string> = {
-  misleading_info: 'Información engañosa',
-  identity_theft: 'Suplantación de identidad',
-  inappropriate_content: 'Contenido inapropiado',
-  spam: 'Spam',
-  other: 'Otro motivo',
+const STATUS_LABEL: Record<FraudReportStatus, string> = {
+  PENDING: 'Pendiente',
+  REVIEWING: 'En revisión',
+  RESOLVED: 'Resuelto',
+  DISMISSED: 'Descartado',
 }
 
 export function FraudReportDetail({ reportId }: FraudReportDetailProps) {
@@ -45,10 +45,14 @@ export function FraudReportDetail({ reportId }: FraudReportDetailProps) {
     async function load(): Promise<Data> {
       const report = await fraudService.getById(reportId)
       const [campaign, reporter] = await Promise.all([
-        campaignsService.getById(report.campaignId).catch(() => null),
+        adminService.listAll().then(all => all.find(c => c.id === report.campaignId) ?? null),
         usersService.getById(report.reporterId).catch(() => null),
       ])
-      return { report, campaign, reporter }
+      return {
+        report,
+        campaign,
+        reporterName: reporter?.name ?? report.reporterName,
+      }
     }
     load()
       .then((d) => {
@@ -71,7 +75,14 @@ export function FraudReportDetail({ reportId }: FraudReportDetailProps) {
   async function handleResolve(status: 'resolved' | 'dismissed' | 'reviewing') {
     setBusy(true)
     try {
-      const updated = await fraudService.resolve(reportId, status, notes.trim() || undefined)
+      let updated: FraudReportDto
+      if (status === 'reviewing') {
+        updated = await adminService.reviewFraudReport(reportId)
+      } else if (status === 'resolved') {
+        updated = await adminService.resolveFraudReport(reportId, notes.trim() || undefined)
+      } else {
+        updated = await adminService.dismissFraudReport(reportId, notes.trim() || undefined)
+      }
       setData((prev) => (prev ? { ...prev, report: updated } : prev))
       toast.success(
         status === 'reviewing'
@@ -87,16 +98,14 @@ export function FraudReportDetail({ reportId }: FraudReportDetailProps) {
       const message = err instanceof ApiError ? err.message : 'No pudimos actualizar el reporte'
       toast.error(message)
       setBusy(false)
-      return
     }
-    setBusy(false)
   }
 
   if (error) return <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
   if (loading || !data) return <PageSkeleton variant="detail" />
 
-  const { report, campaign, reporter } = data
-  const isOpen = report.status === 'open' || report.status === 'reviewing'
+  const { report, campaign, reporterName } = data
+  const isOpen = report.status === 'PENDING' || report.status === 'REVIEWING'
 
   return (
     <div className="flex flex-col gap-6">
@@ -123,12 +132,11 @@ export function FraudReportDetail({ reportId }: FraudReportDetailProps) {
             {campaign ? (
               <div className="flex flex-col gap-1">
                 <p className="text-sm font-medium">{campaign.title}</p>
-                <p className="text-muted-foreground text-xs">{campaign.summary}</p>
                 <Link
-                  href={`/campanas/${campaign.slug}`}
+                  href={`/admin/validacion/${campaign.id}`}
                   className="text-primary mt-1 text-xs underline-offset-4 hover:underline"
                 >
-                  Ver campaña pública →
+                  Ver campaña →
                 </Link>
               </div>
             ) : (
@@ -139,18 +147,18 @@ export function FraudReportDetail({ reportId }: FraudReportDetailProps) {
           <section className="border-border bg-card flex flex-col gap-3 rounded-lg border p-4">
             <h2 className="text-sm font-semibold">Detalles del reporte</h2>
             <div className="flex flex-col gap-2 text-sm">
-              <DataRow label="Motivo" value={REASON_LABEL[report.reason]} />
+              <DataRow label="Motivo" value={report.reason} />
+              <DataRow label="Estado" value={STATUS_LABEL[report.status]} />
               <DataRow
                 label="Reportado por"
-                value={reporter ? `${reporter.name} (${reporter.email})` : 'Usuario desconocido'}
+                value={reporterName}
               />
             </div>
-            <p className="text-foreground/90 text-sm whitespace-pre-wrap">{report.details}</p>
           </section>
 
           {report.resolutionNotes && (
             <section className="border-border bg-card flex flex-col gap-2 rounded-lg border p-4">
-              <h2 className="text-sm font-semibold">Notas de resolución previas</h2>
+              <h2 className="text-sm font-semibold">Notas de resolución</h2>
               <p className="text-muted-foreground text-sm whitespace-pre-wrap">
                 {report.resolutionNotes}
               </p>
@@ -173,7 +181,7 @@ export function FraudReportDetail({ reportId }: FraudReportDetailProps) {
                   rows={4}
                   className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-lg border px-2.5 py-1.5 text-sm outline-none focus-visible:ring-3"
                 />
-                {report.status === 'open' && (
+                {report.status === 'PENDING' && (
                   <Button
                     type="button"
                     variant="outline"
@@ -207,7 +215,7 @@ export function FraudReportDetail({ reportId }: FraudReportDetailProps) {
               </>
             ) : (
               <p className="text-muted-foreground text-xs">
-                Este reporte ya fue {report.status === 'resolved' ? 'resuelto' : 'descartado'}. No
+                Este reporte ya fue {report.status === 'RESOLVED' ? 'resuelto' : 'descartado'}. No
                 hay acciones disponibles.
               </p>
             )}

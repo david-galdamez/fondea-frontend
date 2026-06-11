@@ -4,7 +4,7 @@ import type { Category } from '@/types'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { WizardFields } from './types'
-import { Location } from '@/types/campaign';
+import type { LocationDto } from '@/lib/api/locations.service'
 
 const SELECT_CLASS =
   'border-input bg-background h-8 w-full rounded-lg border px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50'
@@ -13,7 +13,7 @@ interface StepBasicsProps {
   fields: WizardFields
   errors: Partial<Record<keyof WizardFields, string>>
   categories: Category[]
-  locations: Location[]
+  locations: LocationDto[]
   onChange: (patch: Partial<WizardFields>) => void
 }
 

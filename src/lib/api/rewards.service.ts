@@ -13,8 +13,8 @@ export interface RewardSummaryDto {
   title: string
   description: string
   minAmount: number
-  stock: number | null
-  estimatedDelivery: string | null
+  stock?: number
+  estimatedDelivery?: string
 }
 
 export interface RewardDetailDto {

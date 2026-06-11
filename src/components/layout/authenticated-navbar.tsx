@@ -65,7 +65,7 @@ export function AuthenticatedNavbar({
           >
             <Search className="size-4" />
           </Button>
-          <NotificationBell userId={user.id} unreadCount={unreadCount} onChange={onUnreadChange} />
+          <NotificationBell unreadCount={unreadCount} onChange={onUnreadChange} />
           <ThemeToggle />
           <UserMenu user={user} onLogout={onLogout} />
         </div>

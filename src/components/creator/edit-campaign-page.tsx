@@ -2,6 +2,7 @@
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { campaignsService, rewardsService } from '@/lib/api'
+import { AlertTriangle } from 'lucide-react'
 import { ErrorState } from '@/components/common/error-state'
 import { PageSkeleton } from '@/components/common/page-skeleton'
 import { CampaignWizard } from './wizard/campaign-wizard'
@@ -26,6 +27,9 @@ function toWizardFields(c: CampaignDetailDto): WizardFields {
     goalAmount: String(c.goalAmount),
     durationDays,
     deadline: computeCloseDate(durationDays),
+    coverImageUrl: c.coverImageUrl ?? "",
+    gallery: "",
+    videoUrl: "",
   }
 }
 
@@ -72,15 +76,28 @@ export function EditCampaignClient({ campaignId }: EditCampaignClientProps) {
   if (error) return <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
   if (loading || !data) return <PageSkeleton variant="form" />
 
+  const rejectedReason = data.campaign.rejectionReason
+
   return (
-    <CampaignWizard
-      initialStep={stepParam}
-      initial={{
-        campaignId,
-        status: data.campaign.status,
-        fields: toWizardFields(data.campaign),
-        rewards: data.rewards.map(toWizardReward),
-      }}
-    />
+    <>
+      {rejectedReason && (
+        <div className="bg-destructive/10 text-destructive mb-6 flex items-start gap-2 rounded-md px-4 py-3 text-sm">
+          <AlertTriangle className="mt-0.5 size-5 shrink-0" />
+          <div>
+            <p className="font-medium">Tu campaña fue rechazada</p>
+            <p>{rejectedReason}</p>
+          </div>
+        </div>
+      )}
+      <CampaignWizard
+        initialStep={stepParam}
+        initial={{
+          campaignId,
+          status: data.campaign.status,
+          fields: toWizardFields(data.campaign),
+          rewards: data.rewards.map(toWizardReward),
+        }}
+      />
+    </>
   )
 }

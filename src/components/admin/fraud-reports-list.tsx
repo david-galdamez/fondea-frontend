@@ -3,8 +3,8 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { ChevronRight, Flag } from 'lucide-react'
-import type { Campaign, FraudReport, FraudReportStatus } from '@/types'
-import { adminService, fraudService } from '@/lib/api'
+import { fraudService } from '@/lib/api'
+import type { FraudReportDto, FraudReportStatus } from '@/lib/api/fraud.service'
 import { formatShortDate } from '@/lib/dates'
 import { Label } from '@/components/ui/label'
 import { EmptyState } from '@/components/common/empty-state'
@@ -16,33 +16,28 @@ const SELECT_CLASS =
 
 const STATUS_OPTIONS: { value: FraudReportStatus | ''; label: string }[] = [
   { value: '', label: 'Todos' },
-  { value: 'open', label: 'Abiertos' },
-  { value: 'reviewing', label: 'En revisión' },
-  { value: 'resolved', label: 'Resueltos' },
-  { value: 'dismissed', label: 'Descartados' },
+  { value: 'PENDING', label: 'Pendientes' },
+  { value: 'REVIEWING', label: 'En revisión' },
+  { value: 'RESOLVED', label: 'Resueltos' },
+  { value: 'DISMISSED', label: 'Descartados' },
 ]
 
 const STATUS_LABEL: Record<FraudReportStatus, string> = {
-  open: 'Abierto',
-  reviewing: 'En revisión',
-  resolved: 'Resuelto',
-  dismissed: 'Descartado',
+  PENDING: 'Pendiente',
+  REVIEWING: 'En revisión',
+  RESOLVED: 'Resuelto',
+  DISMISSED: 'Descartado',
 }
 
 const STATUS_CLASSES: Record<FraudReportStatus, string> = {
-  open: 'bg-destructive/10 text-destructive',
-  reviewing: 'bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200',
-  resolved: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200',
-  dismissed: 'bg-muted text-muted-foreground',
-}
-
-interface Data {
-  reports: FraudReport[]
-  campaignsById: Map<string, Campaign>
+  PENDING: 'bg-destructive/10 text-destructive',
+  REVIEWING: 'bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200',
+  RESOLVED: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200',
+  DISMISSED: 'bg-muted text-muted-foreground',
 }
 
 export function FraudReportsList() {
-  const [data, setData] = useState<Data | null>(null)
+  const [reports, setReports] = useState<FraudReportDto[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [retryKey, setRetryKey] = useState(0)
@@ -50,19 +45,11 @@ export function FraudReportsList() {
 
   useEffect(() => {
     let cancelled = false
-    async function load(): Promise<Data> {
-      const [page, allCampaigns] = await Promise.all([
-        fraudService.listAll(statusFilter || undefined, 1, 100),
-        adminService.listAll(),
-      ])
-      const campaignsById = new Map<string, Campaign>()
-      allCampaigns.forEach((c) => campaignsById.set(c.id, c))
-      return { reports: page.items, campaignsById }
-    }
-    load()
-      .then((d) => {
+    fraudService
+      .listAll(statusFilter || undefined, 1, 100)
+      .then((items) => {
         if (cancelled) return
-        setData(d)
+        setReports(items)
         setError(false)
         setLoading(false)
       })
@@ -71,9 +58,7 @@ export function FraudReportsList() {
         setError(true)
         setLoading(false)
       })
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [retryKey, statusFilter])
 
   return (
@@ -105,9 +90,9 @@ export function FraudReportsList() {
 
       {error ? (
         <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
-      ) : loading || !data ? (
+      ) : loading || !reports ? (
         <RowsSkeleton count={4} rowHeight="h-20" />
-      ) : data.reports.length === 0 ? (
+      ) : reports.length === 0 ? (
         <EmptyState
           icon={Flag}
           title={
@@ -118,37 +103,35 @@ export function FraudReportsList() {
         />
       ) : (
         <div className="flex flex-col gap-2">
-          {data.reports.map((r) => {
-            const campaign = data.campaignsById.get(r.campaignId)
-            return (
-              <Link
-                key={r.id}
-                href={`/admin/fraude/${r.id}`}
-                className="group border-border bg-card hover:border-foreground/20 flex items-center gap-3 rounded-lg border p-4 transition-colors"
-              >
-                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <p className="truncate text-sm font-medium">
-                    {campaign?.title ?? 'Campaña eliminada'}
-                  </p>
-                  <p className="text-muted-foreground line-clamp-1 text-xs">{r.details}</p>
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className="text-muted-foreground text-xs">
-                    {formatShortDate(r.createdAt)}
-                  </span>
-                  <span
-                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASSES[r.status]}`}
-                  >
-                    {STATUS_LABEL[r.status]}
-                  </span>
-                </div>
-                <ChevronRight
-                  className="text-muted-foreground size-4 shrink-0"
-                  aria-hidden="true"
-                />
-              </Link>
-            )
-          })}
+          {reports.map((r) => (
+            <Link
+              key={r.id}
+              href={`/admin/fraude/${r.id}`}
+              className="group border-border bg-card hover:border-foreground/20 flex items-center gap-3 rounded-lg border p-4 transition-colors"
+            >
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <p className="truncate text-sm font-medium">{r.campaignTitle}</p>
+                <p className="text-muted-foreground line-clamp-1 text-xs">
+                  {r.reason}
+                  {r.reporterName && ` — por ${r.reporterName}`}
+                </p>
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                <span className="text-muted-foreground text-xs">
+                  {formatShortDate(r.createdAt)}
+                </span>
+                <span
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLASSES[r.status]}`}
+                >
+                  {STATUS_LABEL[r.status]}
+                </span>
+              </div>
+              <ChevronRight
+                className="text-muted-foreground size-4 shrink-0"
+                aria-hidden="true"
+              />
+            </Link>
+          ))}
         </div>
       )}
     </div>

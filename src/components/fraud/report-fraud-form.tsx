@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { ArrowLeft, ShieldAlert } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Campaign, FraudReason } from '@/types'
+import type { FraudReason } from '@/lib/api/fraud.service'
+import type { CampaignDetailDto } from '@/lib/api/campaigns.service'
 import { ApiError, campaignsService, fraudService, NotFoundError } from '@/lib/api'
 import { useSession } from '@/components/providers/session-provider'
 import { Button } from '@/components/ui/button'
@@ -58,7 +59,7 @@ export function ReportFraudForm({ slug }: ReportFraudFormProps) {
   const { session, isLoading: sessionLoading } = useSession()
   const userId = session?.user.id
 
-  const [campaign, setCampaign] = useState<Campaign | null>(null)
+  const [campaign, setCampaign] = useState<CampaignDetailDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
   const [retryKey, setRetryKey] = useState(0)

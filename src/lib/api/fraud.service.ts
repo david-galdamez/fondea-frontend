@@ -1,65 +1,48 @@
-import type { CreateFraudReportInput, FraudReport, FraudReportStatus, ID, Paginated } from '@/types'
-import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
-import { generateId, nowISO, paginate, simulateNetwork } from './client'
-import { NotFoundError, ValidationError } from './errors'
-import { fraudReportsStore } from './_stores'
+import { api } from '../client'
+
+export type FraudReportStatus = 'PENDING' | 'REVIEWING' | 'RESOLVED' | 'DISMISSED'
+
+export type FraudReason =
+  | 'misleading_info'
+  | 'identity_theft'
+  | 'inappropriate_content'
+  | 'spam'
+  | 'other'
+
+export interface FraudReportDto {
+  id: string
+  reporterId: string
+  reporterName: string
+  reporterEmail: string
+  campaignId: string
+  campaignTitle: string
+  reason: string
+  status: FraudReportStatus
+  resolutionNotes?: string
+  createdAt: string
+  resolvedAt?: string
+}
+
+export interface CreateFraudReportRequest {
+  campaignId: string
+  reason: string
+}
 
 export const fraudService = {
-  async report(reporterId: ID, input: CreateFraudReportInput): Promise<FraudReport> {
-    await simulateNetwork()
-    if (!input.details.trim()) {
-      throw new ValidationError('Debes describir el motivo del reporte', { details: 'Requerido' })
-    }
-    const report: FraudReport = {
-      id: generateId(),
-      campaignId: input.campaignId,
-      reporterId,
-      reason: input.reason,
-      details: input.details,
-      status: 'open',
-      createdAt: nowISO(),
-    }
-    return fraudReportsStore.insert(report)
+  report(data: CreateFraudReportRequest): Promise<FraudReportDto> {
+    return api.post<FraudReportDto>('/api/fraud-reports', data)
   },
 
-  async listByReporter(reporterId: ID): Promise<FraudReport[]> {
-    await simulateNetwork()
-    return fraudReportsStore
-      .filter((r) => r.reporterId === reporterId)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  },
-
-  async listAll(
+  listAll(
     status?: FraudReportStatus,
-    page = 1,
-    pageSize = DEFAULT_PAGE_SIZE
-  ): Promise<Paginated<FraudReport>> {
-    await simulateNetwork()
-    const items = fraudReportsStore
-      .filter((r) => !status || r.status === status)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    return paginate(items, page, pageSize)
+    _page = 1,
+    _pageSize = 100,
+  ): Promise<FraudReportDto[]> {
+    const query = status ? `?status=${status}` : ''
+    return api.get<FraudReportDto[]>(`/api/admin/fraud-reports${query}`)
   },
 
-  async getById(id: ID): Promise<FraudReport> {
-    await simulateNetwork()
-    const r = fraudReportsStore.findById(id)
-    if (!r) throw new NotFoundError('Reporte de fraude')
-    return r
-  },
-
-  async resolve(
-    id: ID,
-    status: Exclude<FraudReportStatus, 'open'>,
-    notes?: string
-  ): Promise<FraudReport> {
-    await simulateNetwork()
-    const updated = fraudReportsStore.update(id, {
-      status,
-      resolutionNotes: notes,
-      resolvedAt: status === 'reviewing' ? undefined : nowISO(),
-    })
-    if (!updated) throw new NotFoundError('Reporte de fraude')
-    return updated
+  getById(id: string): Promise<FraudReportDto> {
+    return api.get<FraudReportDto>(`/api/admin/fraud-reports/${id}`)
   },
 }

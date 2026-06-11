@@ -8,6 +8,9 @@ export interface WizardFields {
   goalAmount: string
   durationDays: number
   deadline: string
+  coverImageUrl: string
+  gallery: string
+  videoUrl: string
 }
 export interface WizardRewardDraft {
   id?: string

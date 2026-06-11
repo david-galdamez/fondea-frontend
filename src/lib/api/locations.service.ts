@@ -1,11 +1,14 @@
-import { Location } from '@/types/campaign';
 import { api } from '../client';
 
+export interface LocationDto {
+  id: string
+  country: string
+  city: string
+}
+
 export const locationServices = {
-  async list(): Promise<Location[]> {
-
-    const locations = await api.get<Location[]>('/api/locations')
-
-    return locations;
+  async list(): Promise<LocationDto[]> {
+    const locations = await api.get<LocationDto[]>('/api/locations')
+    return locations
   },
 }

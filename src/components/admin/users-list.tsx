@@ -100,15 +100,7 @@ export function UsersList() {
               className="border-border bg-card flex items-center gap-3 rounded-lg border p-4"
             >
               <div className="bg-muted text-muted-foreground grid size-10 shrink-0 place-items-center rounded-full">
-                {/* {u.avatarUrl ? ( */}
-                {/*   <img */}
-                {/*     src={u.avatarUrl} */}
-                {/*     alt="" */}
-                {/*     className="h-full w-full rounded-full object-cover" */}
-                {/*   /> */}
-                {/* ) : ( */}
-                {/*   <span className="text-xs font-semibold">{initials(u.name)}</span> */}
-                {/* )} */}
+                <span className="text-xs font-semibold">{initials(u.name)}</span>
               </div>
 
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">

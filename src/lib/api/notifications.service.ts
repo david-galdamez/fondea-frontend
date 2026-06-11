@@ -1,43 +1,65 @@
-import type { ID, Notification, Paginated } from '@/types'
-import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
-import { paginate, simulateNetwork } from './client'
-import { NotFoundError } from './errors'
-import { notificationsStore } from './_stores'
+import { api } from '../client';
+
+export type NotificationType =
+  | 'NEAR_GOAL'
+  | 'CAMPAIGN_ENDED'
+  | 'CAMPAIGN_APPROVED'
+  | 'CAMPAIGN_REJECTED'
+  | 'PLEDGE_CHARGED'
+  | 'PLEDGE_REFUNDED'
+  | 'NEW_UPDATE'
+  | 'FRAUD_REPORT_RESOLVED'
+  | 'FRAUD_REPORT_DISMISSED'
+
+export interface Notification {
+  id: string
+  campaignId: string | null
+  campaignTitle: string | null
+  type: NotificationType
+  message: string
+  isRead: boolean
+  createdAt: string
+}
 
 export interface ListNotificationsOptions {
   unreadOnly?: boolean
-  page?: number
-  pageSize?: number
+}
+
+interface NotificationDto {
+  id: string
+  campaignId: string | null
+  campaignTitle: string | null
+  type: string
+  message: string
+  isRead: boolean
+  createdAt: string
+}
+
+function mapNotification(dto: NotificationDto): Notification {
+  return {
+    id: dto.id,
+    campaignId: dto.campaignId,
+    campaignTitle: dto.campaignTitle,
+    type: dto.type as NotificationType,
+    message: dto.message,
+    isRead: dto.isRead,
+    createdAt: dto.createdAt,
+  }
 }
 
 export const notificationsService = {
-  async listForUser(
-    userId: ID,
-    options: ListNotificationsOptions = {}
-  ): Promise<Paginated<Notification>> {
-    await simulateNetwork()
-    const items = notificationsStore
-      .filter((n) => n.userId === userId && (!options.unreadOnly || !n.read))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    return paginate(items, options.page ?? 1, options.pageSize ?? DEFAULT_PAGE_SIZE)
+  async list(options: ListNotificationsOptions = {}): Promise<Notification[]> {
+    const path = options.unreadOnly ? '/api/notifications/unread' : '/api/notifications'
+    const data = await api.get<NotificationDto[]>(path)
+    return data.map(mapNotification)
   },
 
-  async countUnread(userId: ID): Promise<number> {
-    await simulateNetwork()
-    return notificationsStore.filter((n) => n.userId === userId && !n.read).length
+  async countUnread(): Promise<number> {
+    const items = await api.get<NotificationDto[]>('/api/notifications/unread')
+    return items.length
   },
 
-  async markRead(id: ID): Promise<Notification> {
-    await simulateNetwork()
-    const updated = notificationsStore.update(id, { read: true })
-    if (!updated) throw new NotFoundError('Notificación')
-    return updated
-  },
-
-  async markAllRead(userId: ID): Promise<void> {
-    await simulateNetwork()
-    notificationsStore
-      .filter((n) => n.userId === userId && !n.read)
-      .forEach((n) => notificationsStore.update(n.id, { read: true }))
+  async markAllRead(): Promise<void> {
+    await api.put<void>('/api/notifications/read-all', {})
   },
 }

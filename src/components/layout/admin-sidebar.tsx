@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Flag, LayoutDashboard, ListChecks, Megaphone, Users } from 'lucide-react'
+import { Banknote, Flag, LayoutDashboard, ListChecks, Megaphone, Users } from 'lucide-react'
 import { adminService } from '@/lib/api'
 import { SidebarNav, type SidebarNavItem } from './sidebar-nav'
 
@@ -38,6 +38,11 @@ export function AdminSidebar() {
       badge: badges.pendingReview,
     },
     { href: '/admin/campanas', label: 'Campañas', icon: Megaphone },
+    {
+      href: '/admin/retiros',
+      label: 'Retiros',
+      icon: Banknote,
+    },
     {
       href: '/admin/fraude',
       label: 'Reportes de fraude',

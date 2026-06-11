@@ -4,7 +4,6 @@ import type {
   CampaignUpdate,
   DonationCertificate,
   FAQ,
-  FraudReport,
   Notification,
   Pledge,
   Reward,
@@ -17,7 +16,6 @@ import {
   SEED_CATEGORIES,
   SEED_CERTIFICATES,
   SEED_FAQS,
-  SEED_FRAUD_REPORTS,
   SEED_NOTIFICATIONS,
   SEED_PLEDGES,
   SEED_REWARDS,
@@ -34,7 +32,6 @@ export const pledgesStore = new MockStore<Pledge>('pledges', SEED_PLEDGES)
 export const updatesStore = new MockStore<CampaignUpdate>('updates', SEED_UPDATES)
 export const faqsStore = new MockStore<FAQ>('faqs', SEED_FAQS)
 export const notificationsStore = new MockStore<Notification>('notifications', SEED_NOTIFICATIONS)
-export const fraudReportsStore = new MockStore<FraudReport>('fraud-reports', SEED_FRAUD_REPORTS)
 export const withdrawalsStore = new MockStore<Withdrawal>('withdrawals', SEED_WITHDRAWALS)
 export const certificatesStore = new MockStore<DonationCertificate>(
   'certificates',
@@ -50,7 +47,6 @@ export function resetAllStores(): void {
   updatesStore.reset()
   faqsStore.reset()
   notificationsStore.reset()
-  fraudReportsStore.reset()
   withdrawalsStore.reset()
   certificatesStore.reset()
 }

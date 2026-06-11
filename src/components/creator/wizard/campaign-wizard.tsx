@@ -25,8 +25,7 @@ import {
   type WizardFields,
   type WizardRewardDraft,
 } from './types'
-import type { Location } from '@/types/campaign'
-import { locationServices } from '@/lib/api/locations.service'
+import { locationServices, LocationDto } from '@/lib/api/locations.service'
 import { categoriesService } from '@/lib/api/categories.service'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -51,6 +50,9 @@ const EMPTY_FIELDS: WizardFields = {
   goalAmount: '',
   durationDays: 30,
   deadline: computeCloseDate(30),
+  coverImageUrl: '',
+  gallery: '',
+  videoUrl: '',
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -78,7 +80,7 @@ export function CampaignWizard({ initial, initialStep = 1 }: CampaignWizardProps
   const [faqs] = useState<WizardFAQDraft[]>([]) // FAQs omitidas del wizard por ahora
   const [errors, setErrors] = useState<Partial<Record<keyof WizardFields, string>>>({})
   const [categories, setCategories] = useState<Category[]>([])
-  const [locations, setLocations] = useState<Location[]>([])
+  const [locations, setLocations] = useState<LocationDto[]>([])
   const [busy, setBusy] = useState(false)
 
   const isReadOnly =
@@ -135,12 +137,13 @@ export function CampaignWizard({ initial, initialStep = 1 }: CampaignWizardProps
     return {
       title: fields.title.trim(),
       description: fields.description,
+      coverImageUrl: fields.coverImageUrl,
       goalAmount: Number(fields.goalAmount),
       isFlexibleGoal: fields.isFlexibleGoal,
       deadline: toDeadline(fields.durationDays),
       categoryId: fields.categoryId,
       locationId: fields.locationId,
-      city: fields.city
+      city: fields.city,
     }
   }
 
