@@ -49,14 +49,16 @@ export function UsersList() {
         setError(true)
         setLoading(false)
       })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [retryKey])
 
   const visible = useMemo(() => {
     if (!users) return []
     // ← role en lugar de roles.includes
     const filtered = roleFilter ? users.filter((u) => u.role === roleFilter) : users
-    return filtered;
+    return filtered
   }, [users, roleFilter])
 
   return (
@@ -126,7 +128,6 @@ export function UsersList() {
   )
 }
 function initials(name: string): string {
-
   const parts = name.trim().split(/\s+/)
   return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase()
 }

@@ -83,16 +83,19 @@ export function CampaignWizard({ initial, initialStep = 1 }: CampaignWizardProps
   const [locations, setLocations] = useState<LocationDto[]>([])
   const [busy, setBusy] = useState(false)
 
-  const isReadOnly =
-    !!initial &&
-    initial.status !== 'DRAFT' &&
-    initial.status !== 'REJECTED'
+  const isReadOnly = !!initial && initial.status !== 'DRAFT' && initial.status !== 'REJECTED'
 
   const rewardsDisabled = !campaignId
 
   useEffect(() => {
-    categoriesService.list().then(setCategories).catch(() => setCategories([]))
-    locationServices.list().then(setLocations).catch(() => setLocations([]))
+    categoriesService
+      .list()
+      .then(setCategories)
+      .catch(() => setCategories([]))
+    locationServices
+      .list()
+      .then(setLocations)
+      .catch(() => setLocations([]))
   }, [])
 
   // ─── Fields ────────────────────────────────────────────────────────────────
@@ -101,7 +104,7 @@ export function CampaignWizard({ initial, initialStep = 1 }: CampaignWizardProps
     setFields((prev) => ({ ...prev, ...patch }))
     setErrors((prev) => {
       const next = { ...prev }
-        ; (Object.keys(patch) as (keyof WizardFields)[]).forEach((k) => delete next[k])
+      ;(Object.keys(patch) as (keyof WizardFields)[]).forEach((k) => delete next[k])
       return next
     })
   }
@@ -216,7 +219,10 @@ export function CampaignWizard({ initial, initialStep = 1 }: CampaignWizardProps
     }
     setBusy(true)
     const id = await persistCampaign()
-    if (!id) { setBusy(false); return }
+    if (!id) {
+      setBusy(false)
+      return
+    }
     try {
       await syncRewards(id)
       toast.success('Borrador guardado')
@@ -224,7 +230,8 @@ export function CampaignWizard({ initial, initialStep = 1 }: CampaignWizardProps
         router.replace(`/creador/campanas/${id}/editar?step=${step}`)
       }
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : 'No pudimos sincronizar las recompensas'
+      const message =
+        err instanceof ApiError ? err.message : 'No pudimos sincronizar las recompensas'
       toast.error(message)
     }
     setBusy(false)
@@ -233,12 +240,27 @@ export function CampaignWizard({ initial, initialStep = 1 }: CampaignWizardProps
   // ─── Submit ────────────────────────────────────────────────────────────────
 
   async function handleSubmit() {
-    if (!validateStep(1)) { toast.error('Revisa la información básica'); setStep(1); return }
-    if (!validateStep(2)) { toast.error('Revisa la meta y plazo'); setStep(2); return }
-    if (!validateStep(3)) { toast.error('Falta la descripción'); setStep(3); return }
+    if (!validateStep(1)) {
+      toast.error('Revisa la información básica')
+      setStep(1)
+      return
+    }
+    if (!validateStep(2)) {
+      toast.error('Revisa la meta y plazo')
+      setStep(2)
+      return
+    }
+    if (!validateStep(3)) {
+      toast.error('Falta la descripción')
+      setStep(3)
+      return
+    }
     setBusy(true)
     const id = await persistCampaign()
-    if (!id) { setBusy(false); return }
+    if (!id) {
+      setBusy(false)
+      return
+    }
     try {
       await syncRewards(id)
       await campaignsService.submitForReview(id)
@@ -289,7 +311,7 @@ export function CampaignWizard({ initial, initialStep = 1 }: CampaignWizardProps
       <Stepper steps={steps} current={step} onStepClick={goToStep} />
 
       {isReadOnly && (
-        <div className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200 rounded-lg border px-4 py-3 text-sm">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
           Esta campaña ya pasó a revisión o está activa. Solo puedes editarla si fue rechazada o
           está en borrador.
         </div>

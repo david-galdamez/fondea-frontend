@@ -5,8 +5,8 @@ import { CampaignProgress } from './campaign-progress'
 import { CountdownTimer } from './countdown-timer'
 import { LocationBadge } from './location-badge'
 import { StatusBadge } from './status-badge'
-import { CampaignSummaryDto } from '@/lib/api/campaigns.service';
-import { money } from '@/lib/money';
+import { CampaignSummaryDto } from '@/lib/api/campaigns.service'
+import { money } from '@/lib/money'
 
 interface CampaignCardProps {
   campaign: CampaignSummaryDto

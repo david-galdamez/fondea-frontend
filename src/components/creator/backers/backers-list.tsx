@@ -45,7 +45,9 @@ export function BackersList({ campaignId }: BackersListProps) {
         setError(true)
         setLoading(false)
       })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [campaignId, retryKey])
 
   if (error) return <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
@@ -83,7 +85,10 @@ export function BackersList({ campaignId }: BackersListProps) {
                 <p className="text-muted-foreground text-xs">{formatShortDate(p.createdAt)}</p>
               </div>
               <div className="flex flex-col items-end gap-1">
-                <MoneyDisplay value={money(Math.round(p.amount * 100))} className="text-sm font-medium" />
+                <MoneyDisplay
+                  value={money(Math.round(p.amount * 100))}
+                  className="text-sm font-medium"
+                />
                 <PledgeStatusBadge status={p.status} />
               </div>
             </div>

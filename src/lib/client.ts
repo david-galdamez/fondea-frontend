@@ -34,10 +34,7 @@ interface ApiResponse<T> {
   path: string
 }
 
-export async function apiClient<T>(
-  path: string,
-  options: RequestInit = {},
-): Promise<T> {
+export async function apiClient<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = tokenStore.get()
 
   const headers: Record<string, string> = {

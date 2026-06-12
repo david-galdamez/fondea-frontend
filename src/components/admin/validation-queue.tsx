@@ -10,8 +10,8 @@ import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
 import { MoneyDisplay } from '@/components/common/money-display'
 import { PageSkeleton } from '@/components/common/page-skeleton'
-import { CampaignReviewDto } from '@/lib/api/admin.service';
-import { money } from '@/lib/money';
+import { CampaignReviewDto } from '@/lib/api/admin.service'
+import { money } from '@/lib/money'
 
 interface Data {
   campaigns: CampaignReviewDto[]
@@ -92,7 +92,10 @@ export function ValidationQueue() {
                 </div>
                 <div className="flex flex-col items-end gap-0.5 text-xs">
                   <span className="text-muted-foreground">Meta</span>
-                  <MoneyDisplay value={money(Math.round(c.goalAmount * 100))} className="text-sm font-medium" />
+                  <MoneyDisplay
+                    value={money(Math.round(c.goalAmount * 100))}
+                    className="text-sm font-medium"
+                  />
                 </div>
                 <ChevronRight
                   className="text-muted-foreground size-4 shrink-0"

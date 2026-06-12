@@ -68,8 +68,8 @@ export function StepBasics({ fields, errors, categories, locations, onChange }: 
             className={SELECT_CLASS}
             value={fields.locationId}
             onChange={(e) => onChange({ locationId: e.target.value })}
-            aria-invalid={!!errors.locationId}>
-
+            aria-invalid={!!errors.locationId}
+          >
             <option value="">Selecciona…</option>
             {locations.map((loc) => (
               <option key={loc.id} value={loc.id}>
@@ -77,7 +77,9 @@ export function StepBasics({ fields, errors, categories, locations, onChange }: 
               </option>
             ))}
           </select>
-          {errors.locationId && <span className="text-destructive text-xs">{errors.locationId}</span>}
+          {errors.locationId && (
+            <span className="text-destructive text-xs">{errors.locationId}</span>
+          )}
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="city">Ciudad</Label>

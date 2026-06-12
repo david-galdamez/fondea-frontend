@@ -70,14 +70,19 @@ export function WithdrawalsPage() {
         setError(true)
         setLoading(false)
       })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [retryKey])
 
   // Campañas exitosas con saldo disponible
   const eligibleCampaigns = useMemo(() => {
     if (!data) return []
     return data.campaigns
-      .filter((c) => c.status === 'SUCCESSFUL' && c.availableToWithdraw != null && c.availableToWithdraw > 0)
+      .filter(
+        (c) =>
+          c.status === 'SUCCESSFUL' && c.availableToWithdraw != null && c.availableToWithdraw > 0
+      )
       .map((c) => ({
         campaign: c,
         available: c.availableToWithdraw!, // BigDecimal en dólares desde el backend
@@ -92,9 +97,7 @@ export function WithdrawalsPage() {
 
   const overAvailable = !!selected && grossAmount > selected.available
   const limitExceeded =
-    !!data?.limits.isNewCreator &&
-    grossAmount > 0 &&
-    grossAmount > data.limits.availableToday
+    !!data?.limits.isNewCreator && grossAmount > 0 && grossAmount > data.limits.availableToday
 
   async function handleRequest(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -150,8 +153,8 @@ export function WithdrawalsPage() {
             Hoy puedes retirar hasta{' '}
             <MoneyDisplay value={money(Math.round(data.limits.dailyLimit * 100))} /> neto. Usado
             hoy: <MoneyDisplay value={money(Math.round(data.limits.usedToday * 100))} /> ·
-            Disponible:{' '}
-            <MoneyDisplay value={money(Math.round(data.limits.availableToday * 100))} />.
+            Disponible: <MoneyDisplay value={money(Math.round(data.limits.availableToday * 100))} />
+            .
           </p>
         </aside>
       )}
@@ -279,7 +282,10 @@ export function WithdrawalsPage() {
                     {STATUS_LABEL[w.status] ?? w.status}
                   </span>
                 </div>
-                <ChevronRight className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
+                <ChevronRight
+                  className="text-muted-foreground size-4 shrink-0"
+                  aria-hidden="true"
+                />
               </div>
             ))}
           </div>

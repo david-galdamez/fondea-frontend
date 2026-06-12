@@ -8,7 +8,12 @@ interface LocationBadgeProps {
   className?: string
 }
 
-export function LocationBadge({ city, country, showCountry = true, className }: LocationBadgeProps) {
+export function LocationBadge({
+  city,
+  country,
+  showCountry = true,
+  className,
+}: LocationBadgeProps) {
   return (
     <span className={cn('text-muted-foreground inline-flex items-center gap-1 text-xs', className)}>
       <MapPin className="size-3" aria-hidden="true" />

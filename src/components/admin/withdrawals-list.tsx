@@ -35,7 +35,9 @@ export function WithdrawalsList() {
         setError(true)
         setLoading(false)
       })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [retryKey])
 
   async function handleApprove(id: string) {
@@ -98,7 +100,8 @@ export function WithdrawalsList() {
                     Solicitado el {formatShortDate(w.requestedAt)}
                     {w.commissionAmount > 0 && (
                       <span className="ml-2">
-                        Comisión: <MoneyDisplay value={money(Math.round(w.commissionAmount * 100))} />
+                        Comisión:{' '}
+                        <MoneyDisplay value={money(Math.round(w.commissionAmount * 100))} />
                       </span>
                     )}
                   </p>

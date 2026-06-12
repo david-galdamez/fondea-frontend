@@ -14,8 +14,8 @@ import { PageSkeleton } from '@/components/common/page-skeleton'
 import { MoneyDisplay } from '@/components/common/money-display'
 import { StatusBadge } from '@/components/campaigns/status-badge'
 import { CampaignProgress } from '@/components/campaigns/campaign-progress'
-import { MyCampaignDto } from '@/lib/api/campaigns.service';
-import { WithdrawalDto } from '@/lib/api/withdrawals.service';
+import { MyCampaignDto } from '@/lib/api/campaigns.service'
+import { WithdrawalDto } from '@/lib/api/withdrawals.service'
 
 interface DashboardData {
   campaigns: MyCampaignDto[]
@@ -43,7 +43,10 @@ export function CreatorDashboard() {
     Promise.all([campaignsService.getMine(), withdrawalsService.getMine()])
       .then(([campaigns, withdrawals]) => {
         if (cancelled) return
-        const totalRaised = campaigns.reduce((acc, c) => addMoney(acc, money(Math.floor(c.totalPledged * 100))), zeroMoney())
+        const totalRaised = campaigns.reduce(
+          (acc, c) => addMoney(acc, money(Math.floor(c.totalPledged * 100))),
+          zeroMoney()
+        )
         setData({
           campaigns,
           withdrawals,
@@ -174,7 +177,11 @@ export function CreatorDashboard() {
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{c.title}</p>
                   <p className="text-muted-foreground text-xs">
-                    Recaudado <MoneyDisplay value={money(Math.floor(c.availableToWithdraw! * 100))} className="text-foreground" />
+                    Recaudado{' '}
+                    <MoneyDisplay
+                      value={money(Math.floor(c.availableToWithdraw! * 100))}
+                      className="text-foreground"
+                    />
                   </p>
                 </div>
                 <Button render={<Link href="/creador/retiros" />} variant="outline" size="sm">

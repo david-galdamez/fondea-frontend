@@ -1,4 +1,4 @@
-import { CampaignStatus } from '@/lib/api/campaigns.service';
+import { CampaignStatus } from '@/lib/api/campaigns.service'
 import { cn } from '@/lib/utils'
 
 interface StatusBadgeProps {

@@ -26,10 +26,10 @@ import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
 import { MoneyDisplay } from '@/components/common/money-display'
 import { PageSkeleton } from '@/components/common/page-skeleton'
-import { CampaignDetailDto } from '@/lib/api/campaigns.service';
-import { Category } from '@/lib/api/categories.service';
-import { money } from '@/lib/money';
-import { FaqDto } from '@/lib/api/faqs.service';
+import { CampaignDetailDto } from '@/lib/api/campaigns.service'
+import { Category } from '@/lib/api/categories.service'
+import { money } from '@/lib/money'
+import { FaqDto } from '@/lib/api/faqs.service'
 
 interface ValidationDetailProps {
   campaignId: string
@@ -61,7 +61,7 @@ export function ValidationDetail({ campaignId }: ValidationDetailProps) {
         categoriesService
           .list()
           .then((all) => all.find((c) => c.id === campaign.categoryId) ?? null),
-        faqsService.listPublic(campaignId)
+        faqsService.listPublic(campaignId),
       ])
       return { campaign, creator, category, faqs }
     }
@@ -211,7 +211,12 @@ export function ValidationDetail({ campaignId }: ValidationDetailProps) {
               <DataRow label="Fecha de cierre" value={`${campaign.deadline}`} />
               <DataRow
                 label="Meta"
-                value={<MoneyDisplay value={money(Math.round(campaign.goalAmount * 100))} className="font-medium" />}
+                value={
+                  <MoneyDisplay
+                    value={money(Math.round(campaign.goalAmount * 100))}
+                    className="font-medium"
+                  />
+                }
               />
             </div>
           </div>

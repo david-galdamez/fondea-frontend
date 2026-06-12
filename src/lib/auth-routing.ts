@@ -5,8 +5,8 @@ import type { Role, User } from '@/types'
  * admin > creator > backer.
  */
 export function getPrimaryPath(user: Pick<User, 'role'>): string {
-  if (user.role === "ADMIN") return '/admin'
-  if (user.role === "CREATOR") return '/creador'
+  if (user.role === 'ADMIN') return '/admin'
+  if (user.role === 'CREATOR') return '/creador'
   return '/dashboard'
 }
 
@@ -33,7 +33,7 @@ export const ROLE_LABEL: Record<Role, string> = {
  * requiere autenticación (no un rol específico).
  */
 export function requiredRoleForPath(pathname: string): Role | null {
-  if (pathname.startsWith('/admin')) return "ADMIN"
-  if (pathname.startsWith('/creador')) return "CREATOR"
+  if (pathname.startsWith('/admin')) return 'ADMIN'
+  if (pathname.startsWith('/creador')) return 'CREATOR'
   return null
 }

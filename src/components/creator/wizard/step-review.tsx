@@ -27,18 +27,12 @@ export function StepReview({ fields, rewards, faqs, categories }: StepReviewProp
         <h3 className="text-base font-semibold">Resumen</h3>
         <DataRow label="Título" value={fields.title || '—'} />
         <DataRow label="Categoría" value={category?.name ?? '—'} />
-        <DataRow
-          label="Ubicación"
-          value={fields.city || '—'}
-        />
+        <DataRow label="Ubicación" value={fields.city || '—'} />
       </div>
 
       <div className="border-border bg-card flex flex-col gap-3 rounded-lg border p-4">
         <h3 className="text-base font-semibold">Meta y plazo</h3>
-        <DataRow
-          label="Tipo"
-          value={!fields.isFlexibleGoal ? 'Fija (todo o nada)' : 'Flexible'}
-        />
+        <DataRow label="Tipo" value={!fields.isFlexibleGoal ? 'Fija (todo o nada)' : 'Flexible'} />
         <DataRow label="Meta" value={<MoneyDisplay value={goalMoney} />} />
         <DataRow label="Duración" value={`${fields.durationDays} días`} />
         <CampaignProgress
@@ -51,7 +45,7 @@ export function StepReview({ fields, rewards, faqs, categories }: StepReviewProp
 
       <div className="border-border bg-card flex flex-col gap-3 rounded-lg border p-4">
         <h3 className="text-base font-semibold">Descripción</h3>
-        <pre className="text-muted-foreground max-h-64 overflow-auto whitespace-pre-wrap text-sm">
+        <pre className="text-muted-foreground max-h-64 overflow-auto text-sm whitespace-pre-wrap">
           {fields.description || '—'}
         </pre>
         {/* {fields.videoUrl && ( */}

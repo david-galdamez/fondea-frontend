@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import { Category } from '@/lib/api/categories.service';
+import { Category } from '@/lib/api/categories.service'
 
 interface CategoryBadgeProps {
   category: Pick<Category, 'name' | 'id'>

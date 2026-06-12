@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { campaignsService } from '@/lib/api'
 import { CampaignCard } from './campaign-card'
 import { CampaignCardSkeleton } from './campaign-card-skeleton'
-import { CampaignSummaryDto } from '@/lib/api/campaigns.service';
+import { CampaignSummaryDto } from '@/lib/api/campaigns.service'
 
 interface FeaturedCampaignsProps {
   limit?: number

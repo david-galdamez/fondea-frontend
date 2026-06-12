@@ -37,11 +37,13 @@ export function ManageFAQs({ campaignId }: ManageFAQsProps) {
     try {
       const updated = await faqsService.answer(campaignId, faqId, { answer })
       setFaqs((prev) =>
-        prev.map((f) =>
-          f.id === faqId ? { ...f, answer: updated.answer, answered: true } : f
-        )
+        prev.map((f) => (f.id === faqId ? { ...f, answer: updated.answer, answered: true } : f))
       )
-      setAnswerDrafts((prev) => { const next = { ...prev }; delete next[faqId]; return next })
+      setAnswerDrafts((prev) => {
+        const next = { ...prev }
+        delete next[faqId]
+        return next
+      })
       toast.success('Respuesta publicada')
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'No pudimos publicar la respuesta.'
@@ -132,7 +134,10 @@ export function ManageFAQs({ campaignId }: ManageFAQsProps) {
             Respondidas ({answered.length})
           </h2>
           {answered.map((faq) => (
-            <article key={faq.id} className="border-border bg-card rounded-lg border p-4 opacity-80">
+            <article
+              key={faq.id}
+              className="border-border bg-card rounded-lg border p-4 opacity-80"
+            >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex flex-col gap-1">
                   <p className="text-sm font-medium">{faq.question}</p>

@@ -13,7 +13,7 @@ import {
 import { cn } from '@/lib/utils'
 import { Logo } from './logo'
 import { ThemeToggle } from './theme-toggle'
-import { Category } from '@/lib/api/categories.service';
+import { Category } from '@/lib/api/categories.service'
 
 interface PublicNavbarProps {
   categories?: Category[]
@@ -60,10 +60,7 @@ export function PublicNavbar({ categories = [] }: PublicNavbarProps) {
               />
               <DropdownMenuContent align="start">
                 {categories.map((cat) => (
-                  <DropdownMenuItem
-                    key={cat.id}
-                    render={<Link href={`/categorias/${cat.id}`} />}
-                  >
+                  <DropdownMenuItem key={cat.id} render={<Link href={`/categorias/${cat.id}`} />}>
                     {cat.name}
                   </DropdownMenuItem>
                 ))}

@@ -1,11 +1,18 @@
 import Link from 'next/link'
-import { AlertTriangle, CalendarClock, ExternalLink, MessageSquare, Pencil, Users } from 'lucide-react'
+import {
+  AlertTriangle,
+  CalendarClock,
+  ExternalLink,
+  MessageSquare,
+  Pencil,
+  Users,
+} from 'lucide-react'
 import { formatShortDate } from '@/lib/dates'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/campaigns/status-badge'
 import { CampaignProgress } from '@/components/campaigns/campaign-progress'
-import { MyCampaignDto } from '@/lib/api/campaigns.service';
-import { formatMoney, money } from '@/lib/money';
+import { MyCampaignDto } from '@/lib/api/campaigns.service'
+import { formatMoney, money } from '@/lib/money'
 
 interface CreatorCampaignCardProps {
   campaign: MyCampaignDto
@@ -15,9 +22,7 @@ export function CreatorCampaignCard({ campaign }: CreatorCampaignCardProps) {
   const isEditable = campaign.status === 'DRAFT'
   const wasRejected = campaign.status === 'DRAFT' && !!campaign.rejectionReason
   const hasPublicPage =
-    campaign.status === 'ACTIVE' ||
-    campaign.status === 'SUCCESSFUL' ||
-    campaign.status === 'FAILED'
+    campaign.status === 'ACTIVE' || campaign.status === 'SUCCESSFUL' || campaign.status === 'FAILED'
 
   return (
     <article className="border-border bg-card flex flex-col gap-4 rounded-lg border p-4">

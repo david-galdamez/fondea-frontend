@@ -1,11 +1,6 @@
 import { api } from '../client'
 
-export type PledgeStatus =
-  | 'AUTHORIZED'
-  | 'CAPTURED'
-  | 'CANCELLED'
-  | 'REFUNDED'
-  | 'PENDING'
+export type PledgeStatus = 'AUTHORIZED' | 'CAPTURED' | 'CANCELLED' | 'REFUNDED' | 'PENDING'
 
 export interface PledgeCreatedDto {
   id: string
@@ -66,10 +61,10 @@ export const pledgesService = {
   listByCampaign(
     campaignId: string,
     page = 1,
-    size = 20,
+    size = 20
   ): Promise<PageableResponse<CampaignPledgeDto>> {
     return api.get<PageableResponse<CampaignPledgeDto>>(
-      `/api/campaigns/${campaignId}/pledges?page=${page}&size=${size}`,
+      `/api/campaigns/${campaignId}/pledges?page=${page}&size=${size}`
     )
   },
 }
