@@ -1,12 +1,7 @@
-import { api } from "../client";
-import { RewardSummaryDto } from "./rewards.service";
+import { api } from '../client'
+import { RewardSummaryDto } from './rewards.service'
 
-export type CampaignStatus =
-  | 'DRAFT'
-  | 'UNDER_REVIEW'
-  | 'ACTIVE'
-  | 'SUCCESSFUL'
-  | 'FAILED'
+export type CampaignStatus = 'DRAFT' | 'UNDER_REVIEW' | 'ACTIVE' | 'SUCCESSFUL' | 'FAILED'
 
 export interface CampaignCreatedDto {
   id: string
@@ -23,7 +18,7 @@ export interface CampaignSummaryDto {
   goalAmount: number
   totalPledged: number
   pledgeCount: number
-  deadline: string        // LocalDate → "YYYY-MM-DD"
+  deadline: string // LocalDate → "YYYY-MM-DD"
   categoryName: string
   locationCity: string
   locationCountry: string
@@ -93,7 +88,7 @@ export interface RegisterCampaignRequest {
   description: string
   goalAmount: number
   isFlexibleGoal: boolean
-  deadline: string        // "YYYY-MM-DD"
+  deadline: string // "YYYY-MM-DD"
   categoryId: string
   locationId: string
   city: string

@@ -22,14 +22,14 @@ function toWizardFields(c: CampaignDetailDto): WizardFields {
     description: c.description,
     categoryId: c.categoryId,
     locationId: c.locationId,
-    city: c.city ?? "",
+    city: c.city ?? '',
     isFlexibleGoal: c.isFlexibleGoal,
     goalAmount: String(c.goalAmount),
     durationDays,
     deadline: computeCloseDate(durationDays),
-    coverImageUrl: c.coverImageUrl ?? "",
-    gallery: "",
-    videoUrl: "",
+    coverImageUrl: c.coverImageUrl ?? '',
+    gallery: '',
+    videoUrl: '',
   }
 }
 
@@ -48,17 +48,17 @@ export function EditCampaignClient({ campaignId }: EditCampaignClientProps) {
   const searchParams = useSearchParams()
   const stepParam = Number(searchParams.get('step') ?? '1')
 
-  const [data, setData] = useState<{ campaign: CampaignDetailDto; rewards: RewardDetailDto[] } | null>(null)
+  const [data, setData] = useState<{
+    campaign: CampaignDetailDto
+    rewards: RewardDetailDto[]
+  } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [retryKey, setRetryKey] = useState(0)
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([
-      campaignsService.getById(campaignId),
-      rewardsService.getManage(campaignId),
-    ])
+    Promise.all([campaignsService.getById(campaignId), rewardsService.getManage(campaignId)])
       .then(([campaign, rewards]) => {
         if (cancelled) return
         setData({ campaign, rewards })
@@ -70,7 +70,9 @@ export function EditCampaignClient({ campaignId }: EditCampaignClientProps) {
         setError(true)
         setLoading(false)
       })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [campaignId, retryKey])
 
   if (error) return <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />

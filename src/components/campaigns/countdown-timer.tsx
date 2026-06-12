@@ -1,5 +1,6 @@
 import { CalendarClock } from 'lucide-react'
-import type { CampaignStatus, ISODateString } from '@/types'
+import type { ISODateString } from '@/types'
+import type { CampaignStatus } from '@/lib/api/campaigns.service'
 import { cn } from '@/lib/utils'
 
 interface CountdownTimerProps {
@@ -32,15 +33,13 @@ function formatRemaining(endDate: ISODateString): string {
 }
 
 const TERMINAL_LABEL: Partial<Record<CampaignStatus, string>> = {
-  successful: 'Campaña exitosa',
-  failed: 'No alcanzó la meta',
-  cancelled: 'Campaña cancelada',
-  rejected: 'Rechazada',
+  SUCCESSFUL: 'Campaña exitosa',
+  FAILED: 'No alcanzó la meta',
 }
 
 export function CountdownTimer({ endDate, status, className, iconClassName }: CountdownTimerProps) {
   const terminal = TERMINAL_LABEL[status]
-  const label = terminal ?? (status === 'active' ? formatRemaining(endDate) : 'Pendiente de inicio')
+  const label = terminal ?? (status === 'ACTIVE' ? formatRemaining(endDate) : 'Pendiente de inicio')
 
   return (
     <span className={cn('text-muted-foreground inline-flex items-center gap-1 text-xs', className)}>

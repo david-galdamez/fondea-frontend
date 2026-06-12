@@ -43,7 +43,9 @@ export function AuthenticatedShell({ requiredRole, sidebar, children }: Authenti
       .catch(() => {
         if (!cancelled) setUnreadCount(0)
       })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [pathname, unreadKey])
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 import { api } from '../client'
 
-export type UpdateVisibility = "PUBLIC" | "SPONSORS"
+export type UpdateVisibility = 'PUBLIC' | 'SPONSORS'
 
 export interface CampaignUpdateDto {
   id: string
@@ -34,5 +34,5 @@ export const campaignUpdatesService = {
 
   delete(campaignId: string, updateId: string) {
     return api.delete<undefined>(`/api/campaigns/${campaignId}/updates/${updateId}`)
-  }
+  },
 }

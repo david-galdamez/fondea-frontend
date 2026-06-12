@@ -43,15 +43,15 @@ export function AdminDashboard() {
         setError(true)
         setLoading(false)
       })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [retryKey])
 
   if (error) return <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
   if (loading || !data) return <PageSkeleton variant="summary" />
 
-  const totalPendingWithdrawals = data.pendingWithdrawals.reduce(
-    (acc, w) => acc + w.netAmount, 0
-  )
+  const totalPendingWithdrawals = data.pendingWithdrawals.reduce((acc, w) => acc + w.netAmount, 0)
 
   return (
     <div className="flex flex-col gap-8">

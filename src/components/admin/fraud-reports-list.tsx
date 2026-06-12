@@ -58,7 +58,9 @@ export function FraudReportsList() {
         setError(true)
         setLoading(false)
       })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [retryKey, statusFilter])
 
   return (
@@ -126,10 +128,7 @@ export function FraudReportsList() {
                   {STATUS_LABEL[r.status]}
                 </span>
               </div>
-              <ChevronRight
-                className="text-muted-foreground size-4 shrink-0"
-                aria-hidden="true"
-              />
+              <ChevronRight className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
             </Link>
           ))}
         </div>

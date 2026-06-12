@@ -14,7 +14,10 @@ interface StepperProps {
 
 export function Stepper({ steps, current, onStepClick }: StepperProps) {
   return (
-    <ol className="flex flex-wrap items-center gap-1 text-xs sm:gap-2 sm:text-sm" aria-label="Pasos">
+    <ol
+      className="flex flex-wrap items-center gap-1 text-xs sm:gap-2 sm:text-sm"
+      aria-label="Pasos"
+    >
       {steps.map((step, idx) => {
         const isCurrent = step.number === current
         const isDone = step.number < current
@@ -30,7 +33,7 @@ export function Stepper({ steps, current, onStepClick }: StepperProps) {
                 isCurrent && 'bg-primary/10 text-primary',
                 !isCurrent && isDone && 'text-foreground',
                 !isCurrent && !isDone && 'text-muted-foreground',
-                isClickable && 'cursor-pointer hover:bg-muted',
+                isClickable && 'hover:bg-muted cursor-pointer',
                 !isClickable && 'cursor-default'
               )}
               aria-current={isCurrent ? 'step' : undefined}

@@ -63,9 +63,7 @@ export function CampaignFAQs({ campaignId }: CampaignFAQsProps) {
           {faqs.map((faq) => (
             <article key={faq.id} className="border-border rounded-lg border p-4">
               <p className="text-sm font-medium">{faq.question}</p>
-              {faq.answer && (
-                <p className="text-muted-foreground mt-2 text-sm">{faq.answer}</p>
-              )}
+              {faq.answer && <p className="text-muted-foreground mt-2 text-sm">{faq.answer}</p>}
               <p className="text-muted-foreground mt-2 text-xs">
                 {faq.answeredAt
                   ? `Respondida el ${formatShortDate(faq.answeredAt)}`
@@ -86,7 +84,9 @@ export function CampaignFAQs({ campaignId }: CampaignFAQsProps) {
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="Escribe tu pregunta…"
-              onKeyDown={(e) => { if (e.key === 'Enter') handleAsk() }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleAsk()
+              }}
             />
             <Button onClick={handleAsk} disabled={submitting || !question.trim()} size="sm">
               <Send className="size-4" />

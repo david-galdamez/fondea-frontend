@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { ArrowLeft, CheckCircle2, ChevronRight, ShieldAlert } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Campaign, Pledge, Reward } from '@/types'
+import type { CampaignDetailDto } from '@/lib/api/campaigns.service'
+import type { PledgeCreatedDto } from '@/lib/api/pledges.service'
+import type { RewardSummaryDto } from '@/lib/api/rewards.service'
 import {
   ApiError,
   campaignsService,
@@ -32,33 +34,31 @@ type Step = 'choose' | 'confirm' | 'success'
 
 const FREE_AMOUNT_KEY = '__free__'
 
-function dollarsToCents(value: string): number {
+function parseAmount(value: string): number {
   const parsed = Number(value)
   if (!Number.isFinite(parsed) || parsed <= 0) return 0
-  return Math.round(parsed * 100)
+  return parsed
 }
 
-function centsToInput(value: number): string {
-  return (value / 100).toFixed(2)
+function toMoney(amount: number) {
+  return money(Math.round(amount * 100))
 }
 
-export function PledgeFlow() {
+export function PledgeFlow({ slug }: PledgeFlowProps) {
   const router = useRouter()
   const { session, isLoading: sessionLoading } = useSession()
 
-  const [campaign, setCampaign] = useState<Campaign | null>(null)
-  const [rewards, setRewards] = useState<Reward[]>([])
+  const [campaign, setCampaign] = useState<CampaignDetailDto | null>(null)
+  const [rewards, setRewards] = useState<RewardSummaryDto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
   const [step, setStep] = useState<Step>('choose')
   const [selectedRewardId, setSelectedRewardId] = useState<string>(FREE_AMOUNT_KEY)
   const [amountInput, setAmountInput] = useState('25.00')
-  const [isAnonymous, setIsAnonymous] = useState(false)
-  const [wantsCertificate, setWantsCertificate] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [createdPledge, setCreatedPledge] = useState<Pledge | null>(null)
+  const [createdPledge, setCreatedPledge] = useState<PledgeCreatedDto | null>(null)
 
   // Auth gate
   useEffect(() => {
@@ -67,21 +67,20 @@ export function PledgeFlow() {
       const redirect = encodeURIComponent(`/campanas/${slug}/apoyar`)
       router.replace(`/auth/login?redirect=${redirect}`)
     }
-  }, [session, sessionLoading, router])
+  }, [session, sessionLoading, router, slug])
 
   // Load campaign + rewards
   useEffect(() => {
     let cancelled = false
-    Promise.all([campaignsService.getBySlug(slug), null])
-      .then(async ([c]) => {
-        if (cancelled) return c
+    campaignsService
+      .getById(slug)
+      .then(async (c) => {
         const rs = await rewardsService.getAvailable(c.id)
-        if (cancelled) return c
+        if (cancelled) return
         setCampaign(c)
         setRewards(rs)
         setError(null)
         setLoading(false)
-        return c
       })
       .catch((err) => {
         if (cancelled) return
@@ -100,18 +99,18 @@ export function PledgeFlow() {
     setSelectedRewardId(rewardId)
     if (rewardId === FREE_AMOUNT_KEY) return
     const reward = rewards.find((r) => r.id === rewardId)
-    if (reward) setAmountInput(centsToInput(reward.minAmount.amount))
+    if (reward) setAmountInput(reward.minAmount.toFixed(2))
   }
 
   function goToConfirm() {
-    const cents = dollarsToCents(amountInput)
-    if (cents <= 0) {
+    const amount = parseAmount(amountInput)
+    if (amount <= 0) {
       setSubmitError('Ingresa un monto válido en USD.')
       return
     }
-    if (selectedReward && cents < selectedReward.minAmount.amount) {
+    if (selectedReward && amount < selectedReward.minAmount) {
       setSubmitError(
-        `El monto está por debajo del mínimo de la recompensa (${formatMoney(selectedReward.minAmount)}).`
+        `El monto está por debajo del mínimo de la recompensa (${formatMoney(toMoney(selectedReward.minAmount))}).`
       )
       return
     }
@@ -124,12 +123,10 @@ export function PledgeFlow() {
     setSubmitting(true)
     setSubmitError(null)
     try {
-      const pledge = await pledgesService.create(session.user.id, {
+      const pledge = await pledgesService.create({
         campaignId: campaign.id,
-        amount: money(dollarsToCents(amountInput)),
+        amount: parseAmount(amountInput),
         rewardId: selectedReward?.id,
-        isAnonymous,
-        wantsCertificate,
       })
       setCreatedPledge(pledge)
       setStep('success')
@@ -171,7 +168,7 @@ export function PledgeFlow() {
   }
 
   const isOwnCampaign = campaign.creatorId === session.user.id
-  const notActive = campaign.status !== 'active'
+  const notActive = campaign.status !== 'ACTIVE'
 
   if (isOwnCampaign || notActive) {
     return (
@@ -202,11 +199,15 @@ export function PledgeFlow() {
           <h1 className="text-2xl font-semibold">¡Promesa registrada!</h1>
           <p className="text-muted-foreground">
             Apoyaste <span className="text-foreground font-medium">{campaign.title}</span> con{' '}
-            <MoneyDisplay value={createdPledge.amount} className="text-foreground font-medium" />.
+            <MoneyDisplay
+              value={toMoney(createdPledge.amount)}
+              className="text-foreground font-medium"
+            />
+            .
           </p>
           <p className="text-muted-foreground text-sm">
             Solo se te cobrará si la campaña alcanza su meta el{' '}
-            {new Date(campaign.endDate).toLocaleDateString('es', {
+            {new Date(campaign.deadline).toLocaleDateString('es', {
               day: 'numeric',
               month: 'long',
               year: 'numeric',
@@ -242,11 +243,11 @@ export function PledgeFlow() {
         </p>
         <h1 className="text-2xl font-semibold tracking-tight">{campaign.title}</h1>
         <CampaignProgress
-          raised={campaign.raised}
-          goal={campaign.goal}
-          backersCount={campaign.backersCount}
+          raised={toMoney(campaign.totalPledged)}
+          goal={toMoney(campaign.goalAmount)}
+          backersCount={campaign.pledgeCount}
         />
-        <CountdownTimer endDate={campaign.endDate} status={campaign.status} />
+        <CountdownTimer endDate={campaign.deadline} status={campaign.status} />
       </header>
 
       <div
@@ -280,8 +281,7 @@ export function PledgeFlow() {
             </label>
 
             {rewards.map((reward) => {
-              const remaining =
-                reward.stock !== undefined ? Math.max(0, reward.stock - reward.claimed) : null
+              const remaining = reward.stock ?? null
               const soldOut = remaining === 0
               return (
                 <label
@@ -302,7 +302,7 @@ export function PledgeFlow() {
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="text-sm font-medium">{reward.title}</span>
                     <span className="text-foreground text-sm font-medium">
-                      desde <MoneyDisplay value={reward.minAmount} />
+                      desde <MoneyDisplay value={toMoney(reward.minAmount)} />
                     </span>
                   </div>
                   <span className="text-muted-foreground text-xs">{reward.description}</span>
@@ -327,7 +327,7 @@ export function PledgeFlow() {
                 type="number"
                 inputMode="decimal"
                 step="0.01"
-                min={selectedReward ? selectedReward.minAmount.amount / 100 : 1}
+                min={selectedReward ? selectedReward.minAmount : 1}
                 value={amountInput}
                 onChange={(e) => setAmountInput(e.target.value)}
                 className="pl-6"
@@ -335,7 +335,7 @@ export function PledgeFlow() {
             </div>
             {selectedReward && (
               <p className="text-muted-foreground text-xs">
-                Mínimo: <MoneyDisplay value={selectedReward.minAmount} />
+                Mínimo: <MoneyDisplay value={toMoney(selectedReward.minAmount)} />
               </p>
             )}
           </div>
@@ -372,41 +372,10 @@ export function PledgeFlow() {
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Monto</dt>
                 <dd className="text-right font-medium">
-                  <MoneyDisplay value={money(dollarsToCents(amountInput))} />
+                  <MoneyDisplay value={toMoney(parseAmount(amountInput))} />
                 </dd>
               </div>
             </dl>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label className="flex items-start gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={isAnonymous}
-                onChange={(e) => setIsAnonymous(e.target.checked)}
-                className="mt-0.5"
-              />
-              <span>
-                <span className="font-medium">Apoyo anónimo</span>
-                <span className="text-muted-foreground block text-xs">
-                  Tu nombre no aparecerá públicamente como patrocinador.
-                </span>
-              </span>
-            </label>
-            <label className="flex items-start gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={wantsCertificate}
-                onChange={(e) => setWantsCertificate(e.target.checked)}
-                className="mt-0.5"
-              />
-              <span>
-                <span className="font-medium">Quiero certificado de donación</span>
-                <span className="text-muted-foreground block text-xs">
-                  Recibirás un certificado para desgravación fiscal si la campaña es exitosa.
-                </span>
-              </span>
-            </label>
           </div>
 
           {submitError && (

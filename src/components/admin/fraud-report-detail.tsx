@@ -45,7 +45,7 @@ export function FraudReportDetail({ reportId }: FraudReportDetailProps) {
     async function load(): Promise<Data> {
       const report = await fraudService.getById(reportId)
       const [campaign, reporter] = await Promise.all([
-        adminService.listAll().then(all => all.find(c => c.id === report.campaignId) ?? null),
+        adminService.listAll().then((all) => all.find((c) => c.id === report.campaignId) ?? null),
         usersService.getById(report.reporterId).catch(() => null),
       ])
       return {
@@ -149,10 +149,7 @@ export function FraudReportDetail({ reportId }: FraudReportDetailProps) {
             <div className="flex flex-col gap-2 text-sm">
               <DataRow label="Motivo" value={report.reason} />
               <DataRow label="Estado" value={STATUS_LABEL[report.status]} />
-              <DataRow
-                label="Reportado por"
-                value={reporterName}
-              />
+              <DataRow label="Reportado por" value={reporterName} />
             </div>
           </section>
 

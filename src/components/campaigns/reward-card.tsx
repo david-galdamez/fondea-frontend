@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils'
 import { MoneyDisplay } from '@/components/common/money-display'
-import { RewardSummaryDto } from '@/lib/api/rewards.service';
-import { money } from '@/lib/money';
+import { RewardSummaryDto } from '@/lib/api/rewards.service'
+import { money } from '@/lib/money'
 
 interface RewardCardProps {
   reward: RewardSummaryDto

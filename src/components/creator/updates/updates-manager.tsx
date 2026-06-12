@@ -4,15 +4,15 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { MessageSquare, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { ApiError, campaignsService, updatesService } from '@/lib/api'
+import { ApiError, campaignsService } from '@/lib/api'
 import { formatLongDate } from '@/lib/dates'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog, useConfirmDialog } from '@/components/common/confirm-dialog'
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
 import { PageSkeleton } from '@/components/common/page-skeleton'
-import { CampaignDetailDto } from '@/lib/api/campaigns.service';
-import { CampaignUpdateDto, campaignUpdatesService } from '@/lib/api/campaigns-updates.service';
+import { CampaignDetailDto } from '@/lib/api/campaigns.service'
+import { CampaignUpdateDto, campaignUpdatesService } from '@/lib/api/campaigns-updates.service'
 
 interface UpdatesManagerProps {
   campaignId: string

@@ -19,7 +19,7 @@ export function StepGoal({ fields, errors, onChange }: StepGoalProps) {
         <input
           id="goalType"
           type="checkbox"
-          className="h-4 w-4 accent-primary cursor-pointer"
+          className="accent-primary h-4 w-4 cursor-pointer"
           checked={fields.isFlexibleGoal}
           onChange={(e) => onChange({ isFlexibleGoal: e.target.checked })}
         />
@@ -46,9 +46,7 @@ export function StepGoal({ fields, errors, onChange }: StepGoalProps) {
           onChange={(e) => onChange({ goalAmount: e.target.value })}
           aria-invalid={!!errors.goalAmount}
         />
-        {errors.goalAmount && (
-          <span className="text-destructive text-xs">{errors.goalAmount}</span>
-        )}
+        {errors.goalAmount && <span className="text-destructive text-xs">{errors.goalAmount}</span>}
       </div>
 
       <div className="flex flex-col gap-1.5">

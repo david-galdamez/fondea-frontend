@@ -1,13 +1,13 @@
 import type { Role, User } from '@/types'
-import { api } from '../client';
+import { api } from '../client'
 
 export interface UserDto {
-  id: string;
-  name: string;
-  email: string;
-  role: Role;
-  isVerified: boolean;
-  createdAt: string;
+  id: string
+  name: string
+  email: string
+  role: Role
+  isVerified: boolean
+  createdAt: string
 }
 
 export type UpdateUserPatch = Partial<Pick<User, 'name' | 'city' | 'country' | 'bio'>>

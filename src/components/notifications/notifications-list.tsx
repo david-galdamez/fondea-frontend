@@ -35,7 +35,9 @@ export function NotificationsList() {
         setLoading(false)
       })
 
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [unreadOnly, retryKey])
 
   function handleRetry() {

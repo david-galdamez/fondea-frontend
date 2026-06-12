@@ -52,7 +52,6 @@ export interface FraudReportDto {
 }
 
 export const adminService = {
-
   listAll() {
     return api.get<import('./campaigns.service').CampaignSummaryDto[]>('/api/admin/campaigns')
   },
@@ -62,7 +61,10 @@ export const adminService = {
   },
 
   approveCampaign(id: string) {
-    return api.post<import('./campaigns.service').CampaignDetailDto>(`/api/admin/campaigns/${id}/approve`, {})
+    return api.post<import('./campaigns.service').CampaignDetailDto>(
+      `/api/admin/campaigns/${id}/approve`,
+      {}
+    )
   },
 
   rejectCampaign(id: string, rejectionReason?: string) {

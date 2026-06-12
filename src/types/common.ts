@@ -1,4 +1,3 @@
-
 export type ISODateString = string
 
 export type Currency = 'USD'

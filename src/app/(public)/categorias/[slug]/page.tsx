@@ -1,16 +1,16 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
-import { categoriesService, NotFoundError } from '@/lib/api'
+import { categoriesService } from '@/lib/api'
 import { CategoryCampaigns } from '@/components/campaigns/category-campaigns'
 
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
 
-  const category = await categoriesService.getBySlug(slug).catch((err) => {
-    if (err instanceof NotFoundError) notFound()
-    throw err
-  })
+  // El segmento [slug] transporta el id de la categoría; el backend solo expone el listado.
+  const categories = await categoriesService.list()
+  const category = categories.find((c) => c.id === slug)
+  if (!category) notFound()
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">

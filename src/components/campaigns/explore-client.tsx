@@ -3,7 +3,8 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
-import type { Category, CampaignSummary, Paginated, SearchFilters, SortBy } from '@/types'
+import type { Category, SearchFilters, SortBy } from '@/types'
+import type { CampaignSummaryDto } from '@/lib/api/campaigns.service'
 import { campaignsService, categoriesService } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -46,6 +47,22 @@ function buildSearchParams(filters: Partial<SearchFilters>): string {
   return sp.toString()
 }
 
+export function sortCampaigns(items: CampaignSummaryDto[], sortBy: SortBy): CampaignSummaryDto[] {
+  const sorted = [...items]
+  switch (sortBy) {
+    case 'ending_soon':
+      return sorted.sort((a, b) => a.deadline.localeCompare(b.deadline))
+    case 'most_funded':
+      return sorted.sort((a, b) => b.totalPledged - a.totalPledged)
+    case 'most_backers':
+      return sorted.sort((a, b) => b.pledgeCount - a.pledgeCount)
+    case 'featured':
+      return sorted.sort((a, b) => Number(b.featured) - Number(a.featured))
+    default:
+      return sorted
+  }
+}
+
 const SELECT_CLASS =
   'border-input bg-background h-8 w-full rounded-lg border px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50'
 
@@ -55,7 +72,7 @@ export function ExploreClient() {
   const filters = useMemo(() => readFilters(searchParams), [searchParams])
 
   const [categories, setCategories] = useState<Category[]>([])
-  const [results, setResults] = useState<Paginated<CampaignSummary> | null>(null)
+  const [campaigns, setCampaigns] = useState<CampaignSummaryDto[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [retryKey, setRetryKey] = useState(0)
@@ -70,10 +87,10 @@ export function ExploreClient() {
   useEffect(() => {
     let cancelled = false
     campaignsService
-      .list(filters)
+      .search({ categoryId: filters.categoryId, keyword: filters.query })
       .then((res) => {
         if (cancelled) return
-        setResults(res)
+        setCampaigns(res)
         setError(false)
         setLoading(false)
       })
@@ -85,7 +102,7 @@ export function ExploreClient() {
     return () => {
       cancelled = true
     }
-  }, [filters, retryKey])
+  }, [filters.categoryId, filters.query, retryKey])
 
   function handleRetry() {
     setError(false)
@@ -116,8 +133,23 @@ export function ExploreClient() {
     !!filters.city ||
     (filters.sortBy && filters.sortBy !== 'recent')
 
-  const totalPages = results ? Math.max(1, Math.ceil(results.total / PAGE_SIZE)) : 1
-  const currentPage = filters.page ?? 1
+  // El backend filtra por categoría y keyword; país, ciudad, orden y paginación se aplican aquí.
+  const visible = useMemo(() => {
+    if (!campaigns) return null
+    const country = filters.country?.trim().toLowerCase()
+    const city = filters.city?.trim().toLowerCase()
+    const filtered = campaigns.filter((c) => {
+      if (country && !c.locationCountry.toLowerCase().includes(country)) return false
+      if (city && !c.locationCity.toLowerCase().includes(city)) return false
+      return true
+    })
+    return sortCampaigns(filtered, filters.sortBy ?? 'recent')
+  }, [campaigns, filters.country, filters.city, filters.sortBy])
+
+  const total = visible?.length ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const currentPage = Math.min(filters.page ?? 1, totalPages)
+  const pageItems = visible?.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE) ?? []
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
@@ -195,7 +227,7 @@ export function ExploreClient() {
 
       <div className="flex items-center justify-between gap-2 text-sm">
         <span className="text-muted-foreground">
-          {results ? `${results.total} resultado${results.total === 1 ? '' : 's'}` : ' '}
+          {visible ? `${total} resultado${total === 1 ? '' : 's'}` : ' '}
         </span>
         {hasActiveFilters && (
           <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
@@ -206,13 +238,13 @@ export function ExploreClient() {
 
       {error ? (
         <ErrorState onRetry={handleRetry} />
-      ) : loading || !results ? (
+      ) : loading || !visible ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <CampaignCardSkeleton key={i} />
           ))}
         </div>
-      ) : results.items.length === 0 ? (
+      ) : visible.length === 0 ? (
         <EmptyState
           icon={Search}
           title="No encontramos campañas con esos filtros"
@@ -228,7 +260,7 @@ export function ExploreClient() {
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {results.items.map((campaign) => (
+            {pageItems.map((campaign) => (
               <CampaignCard key={campaign.id} campaign={campaign} />
             ))}
           </div>
@@ -248,7 +280,7 @@ export function ExploreClient() {
               <Button
                 variant="outline"
                 size="sm"
-                disabled={!results.hasMore}
+                disabled={currentPage >= totalPages}
                 onClick={() => updateFilters({ page: currentPage + 1 })}
               >
                 Siguiente

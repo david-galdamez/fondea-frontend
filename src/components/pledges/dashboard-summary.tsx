@@ -3,14 +3,11 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { ArrowRight, Bell, HandHeart, ReceiptText, TrendingUp } from 'lucide-react'
-import type { Campaign, CampaignSummary, Notification, Pledge } from '@/types'
-import {
-  campaignsService,
-  certificatesService,
-  notificationsService,
-  pledgesService,
-} from '@/lib/api'
-import { addMoney, zeroMoney } from '@/lib/money'
+import type { MyPledgeDto } from '@/lib/api/pledges.service'
+import type { Notification } from '@/lib/api/notifications.service'
+import { certificatesService, notificationsService, pledgesService } from '@/lib/api'
+import { money } from '@/lib/money'
+import type { Money } from '@/types'
 import { useSession } from '@/components/providers/session-provider'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/common/empty-state'
@@ -20,17 +17,25 @@ import { CampaignProgress } from '@/components/campaigns/campaign-progress'
 import { NotificationItem } from '@/components/notifications/notification-item'
 import { PledgeListItem } from './pledge-list-item'
 
+const NEAR_GOAL_RATIO = 0.8
+
 interface Stats {
   totalPledges: number
-  totalAmount: ReturnType<typeof zeroMoney>
+  totalAmount: Money
   certificatesCount: number
 }
 
+interface NearGoalCampaign {
+  id: string
+  title: string
+  raised: Money
+  goal: Money
+}
+
 interface SummaryData {
-  recentPledges: Pledge[]
+  recentPledges: MyPledgeDto[]
   recentNotifications: Notification[]
-  campaignsById: Map<string, Campaign>
-  nearGoal: CampaignSummary[]
+  nearGoal: NearGoalCampaign[]
   stats: Stats
 }
 
@@ -47,38 +52,39 @@ export function DashboardSummary() {
     let cancelled = false
 
     async function load() {
-      const [allPledges, notifications, certificates, nearGoalAll] = await Promise.all([
-        pledgesService.listByBacker(userId!, 1, 100),
-        notificationsService.listForUser(userId!, { pageSize: 5 }),
+      const [pledges, notifications, certificates] = await Promise.all([
+        pledgesService.getMine(),
+        notificationsService.list(),
         certificatesService.listMine(),
-        campaignsService.getNearGoal(),
       ])
-      const campaignIds = Array.from(new Set(allPledges.items.map((p) => p.campaignId)))
-      const campaigns = await Promise.all(
-        campaignIds.map((id) => campaignsService.getById(id).catch(() => null))
-      )
-      const campaignsById = new Map<string, Campaign>()
-      campaigns.forEach((c) => {
-        if (c) campaignsById.set(c.id, c)
-      })
-      const totalAmount = allPledges.items
-        .filter((p) => p.status !== 'cancelled' && p.status !== 'refunded')
-        .reduce((acc, p) => addMoney(acc, p.amount), zeroMoney())
 
-      const supportedCampaignIds = new Set(
-        allPledges.items
-          .filter((p) => p.status !== 'cancelled' && p.status !== 'refunded')
-          .map((p) => p.campaignId)
+      const activePledges = pledges.filter(
+        (p) => p.status !== 'CANCELLED' && p.status !== 'REFUNDED'
       )
-      const nearGoal = nearGoalAll.filter((c) => supportedCampaignIds.has(c.id))
+      const totalAmount = money(
+        Math.round(activePledges.reduce((acc, p) => acc + p.amount, 0) * 100)
+      )
+
+      const nearGoalById = new Map<string, NearGoalCampaign>()
+      activePledges.forEach((p) => {
+        if (p.campaignGoal <= 0) return
+        const ratio = p.campaignTotalPledged / p.campaignGoal
+        if (ratio >= NEAR_GOAL_RATIO && ratio < 1) {
+          nearGoalById.set(p.campaignId, {
+            id: p.campaignId,
+            title: p.campaignTitle,
+            raised: money(Math.round(p.campaignTotalPledged * 100)),
+            goal: money(Math.round(p.campaignGoal * 100)),
+          })
+        }
+      })
 
       return {
-        recentPledges: allPledges.items.slice(0, 4),
-        recentNotifications: notifications.items,
-        campaignsById,
-        nearGoal,
+        recentPledges: pledges.slice(0, 4),
+        recentNotifications: notifications.slice(0, 5),
+        nearGoal: Array.from(nearGoalById.values()),
         stats: {
-          totalPledges: allPledges.total,
+          totalPledges: pledges.length,
           totalAmount,
           certificatesCount: certificates.length,
         },
@@ -158,11 +164,7 @@ export function DashboardSummary() {
         ) : (
           <div className="flex flex-col gap-2">
             {data.recentPledges.map((p) => (
-              <PledgeListItem
-                key={p.id}
-                pledge={p}
-                campaign={data.campaignsById.get(p.campaignId) ?? null}
-              />
+              <PledgeListItem key={p.id} pledge={p} />
             ))}
           </div>
         )}
@@ -211,7 +213,7 @@ function StatCard({ icon: Icon, label, value }: StatCardProps) {
 }
 
 interface NearGoalAlertProps {
-  campaigns: CampaignSummary[]
+  campaigns: NearGoalCampaign[]
 }
 
 function NearGoalAlert({ campaigns }: NearGoalAlertProps) {
@@ -242,14 +244,14 @@ function NearGoalAlert({ campaigns }: NearGoalAlertProps) {
         {campaigns.slice(0, 3).map((c) => (
           <li key={c.id}>
             <Link
-              href={`/campanas/${c.slug}`}
+              href={`/campanas/${c.id}`}
               className="border-border bg-background hover:border-foreground/20 flex flex-col gap-2 rounded-md border p-3 transition-colors"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="line-clamp-1 text-sm font-medium">{c.title}</span>
                 <ArrowRight className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
               </div>
-              <CampaignProgress raised={c.raised} goal={c.goal} backersCount={c.backersCount} />
+              <CampaignProgress raised={c.raised} goal={c.goal} />
             </Link>
           </li>
         ))}

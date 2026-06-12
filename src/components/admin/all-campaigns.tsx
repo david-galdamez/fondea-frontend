@@ -13,8 +13,8 @@ import { MoneyDisplay } from '@/components/common/money-display'
 import { RowsSkeleton } from '@/components/common/page-skeleton'
 import { CampaignProgress } from '@/components/campaigns/campaign-progress'
 import { StatusBadge } from '@/components/campaigns/status-badge'
-import { CampaignStatus, CampaignSummaryDto } from '@/lib/api/campaigns.service';
-import { money } from '@/lib/money';
+import { CampaignStatus, CampaignSummaryDto } from '@/lib/api/campaigns.service'
+import { money } from '@/lib/money'
 
 const SELECT_CLASS =
   'border-input bg-background h-8 rounded-lg border px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50'
@@ -126,7 +126,11 @@ export function AllCampaigns() {
               />
               <footer className="flex flex-wrap items-center justify-between gap-2 text-xs">
                 <span className="text-muted-foreground">
-                  Meta <MoneyDisplay value={money(Math.round(c.goalAmount * 100))} className="text-foreground font-medium" />
+                  Meta{' '}
+                  <MoneyDisplay
+                    value={money(Math.round(c.goalAmount * 100))}
+                    className="text-foreground font-medium"
+                  />
                 </span>
                 <div className="flex items-center gap-2">
                   {c.status === 'UNDER_REVIEW' && (
