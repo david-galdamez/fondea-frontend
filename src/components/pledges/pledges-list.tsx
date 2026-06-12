@@ -3,8 +3,8 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { HandHeart } from 'lucide-react'
-import type { Campaign, Pledge, PledgeStatus } from '@/types'
-import { campaignsService, pledgesService } from '@/lib/api'
+import type { MyPledgeDto, PledgeStatus } from '@/lib/api/pledges.service'
+import { pledgesService } from '@/lib/api'
 import { useSession } from '@/components/providers/session-provider'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -15,25 +15,21 @@ import { PledgeListItem } from './pledge-list-item'
 
 const STATUS_OPTIONS: { value: '' | PledgeStatus; label: string }[] = [
   { value: '', label: 'Todos los estados' },
-  { value: 'authorized', label: 'Autorizados' },
-  { value: 'charged', label: 'Cobrados' },
-  { value: 'refunded', label: 'Reembolsados' },
-  { value: 'cancelled', label: 'Cancelados' },
+  { value: 'PENDING', label: 'Pendientes' },
+  { value: 'AUTHORIZED', label: 'Autorizados' },
+  { value: 'CAPTURED', label: 'Cobrados' },
+  { value: 'REFUNDED', label: 'Reembolsados' },
+  { value: 'CANCELLED', label: 'Cancelados' },
 ]
 
 const SELECT_CLASS =
   'border-input bg-background h-8 rounded-lg border px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50'
 
-interface PledgesData {
-  pledges: Pledge[]
-  campaignsById: Map<string, Campaign>
-}
-
 export function PledgesList() {
   const { session } = useSession()
   const userId = session?.user.id
 
-  const [data, setData] = useState<PledgesData | null>(null)
+  const [pledges, setPledges] = useState<MyPledgeDto[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [statusFilter, setStatusFilter] = useState<'' | PledgeStatus>('')
@@ -44,18 +40,10 @@ export function PledgesList() {
     let cancelled = false
 
     pledgesService
-      .listByBacker(userId, 1, 100)
-      .then(async (res) => {
-        const ids = Array.from(new Set(res.items.map((p) => p.campaignId)))
-        const campaigns = await Promise.all(
-          ids.map((id) => campaignsService.getById(id).catch(() => null))
-        )
+      .getMine()
+      .then((items) => {
         if (cancelled) return
-        const campaignsById = new Map<string, Campaign>()
-        campaigns.forEach((c) => {
-          if (c) campaignsById.set(c.id, c)
-        })
-        setData({ pledges: res.items, campaignsById })
+        setPledges(items)
         setError(false)
         setLoading(false)
       })
@@ -75,8 +63,7 @@ export function PledgesList() {
     setRetryKey((k) => k + 1)
   }
 
-  const visiblePledges =
-    data?.pledges.filter((p) => !statusFilter || p.status === statusFilter) ?? []
+  const visiblePledges = pledges?.filter((p) => !statusFilter || p.status === statusFilter) ?? []
 
   return (
     <div className="flex flex-col gap-6">
@@ -106,32 +93,30 @@ export function PledgesList() {
             ))}
           </select>
         </div>
-        {data && (
+        {pledges && (
           <span className="text-muted-foreground text-sm">
-            {visiblePledges.length} de {data.pledges.length}
+            {visiblePledges.length} de {pledges.length}
           </span>
         )}
       </div>
 
       {error ? (
         <ErrorState onRetry={handleRetry} />
-      ) : loading || !data ? (
+      ) : loading || !pledges ? (
         <RowsSkeleton count={4} rowHeight="h-20" />
       ) : visiblePledges.length === 0 ? (
         <EmptyState
           icon={HandHeart}
           title={
-            data.pledges.length === 0
-              ? 'Aún no apoyas ninguna campaña'
-              : 'Sin promesas con ese estado'
+            pledges.length === 0 ? 'Aún no apoyas ninguna campaña' : 'Sin promesas con ese estado'
           }
           description={
-            data.pledges.length === 0
+            pledges.length === 0
               ? 'Explora campañas activas y promete tu primer apoyo.'
               : 'Cambia el filtro para ver otras promesas.'
           }
           action={
-            data.pledges.length === 0 && (
+            pledges.length === 0 && (
               <Button render={<Link href="/explorar" />} variant="outline" size="sm">
                 Explorar campañas
               </Button>
@@ -141,11 +126,7 @@ export function PledgesList() {
       ) : (
         <div className="flex flex-col gap-2">
           {visiblePledges.map((p) => (
-            <PledgeListItem
-              key={p.id}
-              pledge={p}
-              campaign={data.campaignsById.get(p.campaignId) ?? null}
-            />
+            <PledgeListItem key={p.id} pledge={p} />
           ))}
         </div>
       )}

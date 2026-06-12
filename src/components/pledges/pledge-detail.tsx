@@ -1,22 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { ArrowLeft, FileText, XCircle } from 'lucide-react'
-import { toast } from 'sonner'
-import type { Campaign, Pledge, Reward } from '@/types'
-import {
-  ApiError,
-  campaignsService,
-  NotFoundError,
-  pledgesService,
-  rewardsService,
-} from '@/lib/api'
+import { ArrowLeft } from 'lucide-react'
+import type { MyPledgeDto } from '@/lib/api/pledges.service'
+import { pledgesService } from '@/lib/api'
 import { formatLongDate } from '@/lib/dates'
+import { money } from '@/lib/money'
 import { useSession } from '@/components/providers/session-provider'
-import { Button } from '@/components/ui/button'
-import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { ErrorState } from '@/components/common/error-state'
 import { MoneyDisplay } from '@/components/common/money-display'
 import { PageSkeleton } from '@/components/common/page-skeleton'
@@ -26,78 +17,46 @@ interface PledgeDetailProps {
   id: string
 }
 
-interface DetailData {
-  pledge: Pledge
-  campaign: Campaign | null
-  reward: Reward | null
-}
-
 export function PledgeDetail({ id }: PledgeDetailProps) {
-  const router = useRouter()
   const { session } = useSession()
   const userId = session?.user.id
 
-  const [data, setData] = useState<DetailData | null>(null)
+  const [pledge, setPledge] = useState<MyPledgeDto | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-  const [cancelling, setCancelling] = useState(false)
-  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [notFound, setNotFound] = useState(false)
+  const [error, setError] = useState(false)
   const [retryKey, setRetryKey] = useState(0)
 
   useEffect(() => {
+    if (!userId) return
     let cancelled = false
 
-    async function load() {
-      const pledge = await pledgesService.getById(id)
-      const [campaign, reward] = await Promise.all([
-        campaignsService.getById(pledge.campaignId).catch(() => null),
-        pledge.rewardId
-          ? rewardsService.getById(pledge.rewardId).catch(() => null)
-          : Promise.resolve(null),
-      ])
-      return { pledge, campaign, reward }
-    }
-
-    load()
-      .then((d) => {
+    pledgesService
+      .getMine()
+      .then((items) => {
         if (cancelled) return
-        setData(d)
-        setError(null)
+        const found = items.find((p) => p.id === id) ?? null
+        setPledge(found)
+        setNotFound(!found)
+        setError(false)
         setLoading(false)
       })
-      .catch((err) => {
+      .catch(() => {
         if (cancelled) return
-        setError(err instanceof Error ? err : new Error('Error desconocido'))
+        setError(true)
         setLoading(false)
       })
 
     return () => {
       cancelled = true
     }
-  }, [id, retryKey])
-
-  async function handleCancel() {
-    if (!data || !userId) return
-    setCancelling(true)
-    try {
-      await pledgesService.cancel(data.pledge.id, userId)
-      toast.success('Promesa cancelada')
-      setConfirmOpen(false)
-      router.push('/dashboard/pledges')
-    } catch (err) {
-      const message =
-        err instanceof ApiError ? err.message : 'No pudimos cancelar la promesa. Intenta de nuevo.'
-      toast.error(message)
-    } finally {
-      setCancelling(false)
-    }
-  }
+  }, [userId, id, retryKey])
 
   if (loading) {
     return <PageSkeleton variant="detail" />
   }
 
-  if (error instanceof NotFoundError) {
+  if (notFound) {
     return (
       <ErrorState
         title="Promesa no encontrada"
@@ -106,13 +65,9 @@ export function PledgeDetail({ id }: PledgeDetailProps) {
     )
   }
 
-  if (error || !data) {
+  if (error || !pledge) {
     return <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
   }
-
-  const { pledge, campaign, reward } = data
-  const isOwn = pledge.backerId === userId
-  const canCancel = isOwn && (pledge.status === 'authorized' || pledge.status === 'pending')
 
   return (
     <div className="flex flex-col gap-6">
@@ -131,8 +86,6 @@ export function PledgeDetail({ id }: PledgeDetailProps) {
         </div>
         <p className="text-muted-foreground text-sm">
           Creada el {formatLongDate(pledge.createdAt)}
-          {pledge.chargedAt && ` · Cobrada el ${formatLongDate(pledge.chargedAt)}`}
-          {pledge.refundedAt && ` · Reembolsada el ${formatLongDate(pledge.refundedAt)}`}
         </p>
       </header>
 
@@ -141,67 +94,31 @@ export function PledgeDetail({ id }: PledgeDetailProps) {
           <div className="flex flex-col">
             <dt className="text-muted-foreground text-xs">Campaña</dt>
             <dd className="text-sm font-medium">
-              {campaign ? (
-                <Link href={`/campanas/${campaign.slug}`} className="hover:underline">
-                  {campaign.title}
-                </Link>
-              ) : (
-                'Campaña eliminada'
-              )}
+              <Link href={`/campanas/${pledge.campaignId}`} className="hover:underline">
+                {pledge.campaignTitle}
+              </Link>
             </dd>
           </div>
           <div className="flex flex-col">
+            <dt className="text-muted-foreground text-xs">Creador</dt>
+            <dd className="text-sm font-medium">{pledge.creatorName}</dd>
+          </div>
+          <div className="flex flex-col">
             <dt className="text-muted-foreground text-xs">Recompensa</dt>
-            <dd className="text-sm font-medium">{reward?.title ?? 'Sin recompensa'}</dd>
+            <dd className="text-sm font-medium">{pledge.rewardTitle ?? 'Sin recompensa'}</dd>
           </div>
           <div className="flex flex-col">
             <dt className="text-muted-foreground text-xs">Monto</dt>
             <dd className="text-sm font-semibold">
-              <MoneyDisplay value={pledge.amount} />
+              <MoneyDisplay value={money(Math.round(pledge.amount * 100))} />
             </dd>
           </div>
           <div className="flex flex-col">
-            <dt className="text-muted-foreground text-xs">Visibilidad</dt>
-            <dd className="text-sm">{pledge.isAnonymous ? 'Anónimo' : 'Público'}</dd>
-          </div>
-          <div className="flex flex-col">
-            <dt className="text-muted-foreground text-xs">Certificado de donación</dt>
-            <dd className="text-sm">{pledge.wantsCertificate ? 'Solicitado' : 'No solicitado'}</dd>
+            <dt className="text-muted-foreground text-xs">Cierre de la campaña</dt>
+            <dd className="text-sm">{formatLongDate(pledge.campaignDeadline)}</dd>
           </div>
         </dl>
       </section>
-
-      <div className="flex flex-wrap gap-2">
-        <Button
-          render={
-            <a href={`#mock-recibo-${pledge.id}.pdf`} target="_blank" rel="noreferrer">
-              <FileText className="size-4" />
-              Descargar recibo
-            </a>
-          }
-          variant="outline"
-        />
-        {canCancel && (
-          <Button variant="destructive" onClick={() => setConfirmOpen(true)} disabled={cancelling}>
-            <XCircle className="size-4" aria-hidden="true" />
-            Cancelar promesa
-          </Button>
-        )}
-      </div>
-
-      <ConfirmDialog
-        open={confirmOpen}
-        onOpenChange={(next) => {
-          if (!cancelling) setConfirmOpen(next)
-        }}
-        title="¿Cancelar esta promesa?"
-        description="No se cobrará nada y la promesa quedará marcada como cancelada. Esta acción no se puede deshacer."
-        confirmLabel="Sí, cancelar"
-        cancelLabel="Volver"
-        variant="destructive"
-        confirming={cancelling}
-        onConfirm={handleCancel}
-      />
     </div>
   )
 }

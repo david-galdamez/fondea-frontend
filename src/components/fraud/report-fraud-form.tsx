@@ -72,7 +72,7 @@ export function ReportFraudForm({ slug }: ReportFraudFormProps) {
   useEffect(() => {
     let cancelled = false
     campaignsService
-      .getBySlug(slug)
+      .getById(slug)
       .then((c) => {
         if (cancelled) return
         setCampaign(c)
@@ -126,10 +126,11 @@ export function ReportFraudForm({ slug }: ReportFraudFormProps) {
 
     setSubmitting(true)
     try {
-      await fraudService.report(userId, {
+      // El backend recibe un único campo de texto: combinamos motivo y detalle.
+      const reasonLabel = REASON_OPTIONS.find((r) => r.value === reason)?.label ?? reason
+      await fraudService.report({
         campaignId: campaign.id,
-        reason,
-        details: trimmed,
+        reason: `${reasonLabel}: ${trimmed}`,
       })
       toast.success('Reporte enviado. Nuestro equipo lo revisará.')
       router.push(`/campanas/${slug}`)

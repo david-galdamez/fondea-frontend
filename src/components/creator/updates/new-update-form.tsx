@@ -5,14 +5,14 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, Send } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { ApiError, campaignsService, updatesService } from '@/lib/api'
+import { ApiError, campaignsService } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ErrorState } from '@/components/common/error-state'
 import { PageSkeleton } from '@/components/common/page-skeleton'
-import { CampaignDetailDto } from '@/lib/api/campaigns.service';
-import { campaignUpdatesService, UpdateVisibility } from '@/lib/api/campaigns-updates.service';
+import { CampaignDetailDto } from '@/lib/api/campaigns.service'
+import { campaignUpdatesService, UpdateVisibility } from '@/lib/api/campaigns-updates.service'
 
 interface NewUpdateFormProps {
   campaignId: string

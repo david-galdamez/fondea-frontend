@@ -1,13 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
-import type { CampaignSummary, Paginated, SortBy } from '@/types'
+import type { SortBy } from '@/types'
+import type { CampaignSummaryDto } from '@/lib/api/campaigns.service'
 import { campaignsService } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { CampaignCard } from './campaign-card'
 import { CampaignCardSkeleton } from './campaign-card-skeleton'
+import { sortCampaigns } from './explore-client'
 import { EmptyState } from '@/components/common/empty-state'
 import { ErrorState } from '@/components/common/error-state'
 
@@ -26,7 +28,7 @@ interface CategoryCampaignsProps {
 }
 
 export function CategoryCampaigns({ categoryId }: CategoryCampaignsProps) {
-  const [results, setResults] = useState<Paginated<CampaignSummary> | null>(null)
+  const [campaigns, setCampaigns] = useState<CampaignSummaryDto[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [sortBy, setSortBy] = useState<SortBy>('recent')
@@ -35,10 +37,10 @@ export function CategoryCampaigns({ categoryId }: CategoryCampaignsProps) {
   useEffect(() => {
     let cancelled = false
     campaignsService
-      .list({ categoryId, sortBy, pageSize: 24 })
+      .search({ categoryId })
       .then((res) => {
         if (cancelled) return
-        setResults(res)
+        setCampaigns(res)
         setError(false)
         setLoading(false)
       })
@@ -50,18 +52,23 @@ export function CategoryCampaigns({ categoryId }: CategoryCampaignsProps) {
     return () => {
       cancelled = true
     }
-  }, [categoryId, sortBy, retryKey])
+  }, [categoryId, retryKey])
 
   function handleRetry() {
     setError(false)
     setRetryKey((k) => k + 1)
   }
 
+  const visible = useMemo(
+    () => (campaigns ? sortCampaigns(campaigns, sortBy) : null),
+    [campaigns, sortBy]
+  )
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
         <p className="text-muted-foreground text-sm">
-          {results ? `${results.total} campaña${results.total === 1 ? '' : 's'}` : ' '}
+          {visible ? `${visible.length} campaña${visible.length === 1 ? '' : 's'}` : ' '}
         </p>
         <div className="flex items-center gap-2">
           <Label htmlFor="category-sort" className="text-xs">
@@ -84,13 +91,13 @@ export function CategoryCampaigns({ categoryId }: CategoryCampaignsProps) {
 
       {error ? (
         <ErrorState onRetry={handleRetry} />
-      ) : loading || !results ? (
+      ) : loading || !visible ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <CampaignCardSkeleton key={i} />
           ))}
         </div>
-      ) : results.items.length === 0 ? (
+      ) : visible.length === 0 ? (
         <EmptyState
           icon={Search}
           title="Aún no hay campañas en esta categoría"
@@ -105,7 +112,7 @@ export function CategoryCampaigns({ categoryId }: CategoryCampaignsProps) {
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {results.items.map((c) => (
+          {visible.map((c) => (
             <CampaignCard key={c.id} campaign={c} />
           ))}
         </div>

@@ -4,16 +4,17 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { ChevronLeft, Flag, HandHeart, Megaphone, MessageCircleQuestion } from 'lucide-react'
-import type { Campaign, CampaignUpdate, Category, FAQ, Reward } from '@/types'
+import type { Category } from '@/types'
+import type { CampaignDetailDto } from '@/lib/api/campaigns.service'
+import type { CampaignUpdateDto } from '@/lib/api/campaigns-updates.service'
 import {
   ApiError,
   campaignsService,
+  campaignUpdatesService,
   categoriesService,
-  faqsService,
   NotFoundError,
-  rewardsService,
-  updatesService,
 } from '@/lib/api'
+import { money } from '@/lib/money'
 import { Button } from '@/components/ui/button'
 import { CampaignProgress } from './campaign-progress'
 import { CategoryBadge } from './category-badge'
@@ -29,11 +30,9 @@ interface CampaignDetailProps {
 }
 
 interface DetailData {
-  campaign: Campaign
+  campaign: CampaignDetailDto
   category: Category | null
-  rewards: Reward[]
-  updates: CampaignUpdate[]
-  faqs: FAQ[]
+  updates: CampaignUpdateDto[]
 }
 
 function CampaignDetailSkeleton() {
@@ -65,16 +64,16 @@ export function CampaignDetail({ slug }: CampaignDetailProps) {
     let cancelled = false
 
     async function load() {
-      const campaign = await campaignsService.getBySlug(slug)
-      const [category, rewards, updates, faqs] = await Promise.all([
+      // El segmento [slug] transporta el id de la campaña.
+      const campaign = await campaignsService.getById(slug)
+      const [category, updates] = await Promise.all([
         categoriesService
           .list()
-          .then((all) => all.find((c) => c.id === campaign.categoryId) ?? null),
-        rewardsService.listByCampaign(campaign.id),
-        updatesService.listByCampaign(campaign.id, 'public'),
-        faqsService.listByCampaign(campaign.id),
+          .then((all) => all.find((c) => c.id === campaign.categoryId) ?? null)
+          .catch(() => null),
+        campaignUpdatesService.list(campaign.id).catch(() => []),
       ])
-      return { campaign, category, rewards, updates, faqs }
+      return { campaign, category, updates }
     }
 
     load()
@@ -112,8 +111,8 @@ export function CampaignDetail({ slug }: CampaignDetailProps) {
 
   if (!data) return null
 
-  const { campaign, category, rewards, updates, faqs } = data
-  const canSupport = campaign.status === 'active'
+  const { campaign, category, updates } = data
+  const canSupport = campaign.status === 'ACTIVE'
 
   return (
     <article className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
@@ -140,10 +139,10 @@ export function CampaignDetail({ slug }: CampaignDetailProps) {
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={campaign.status} />
           {category && <CategoryBadge category={category} />}
-          <LocationBadge location={campaign.location} />
+          <LocationBadge city={campaign.city} country={campaign.country} />
         </div>
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{campaign.title}</h1>
-        <p className="text-muted-foreground text-lg">{campaign.summary}</p>
+        <p className="text-muted-foreground text-lg">Por {campaign.creatorName}</p>
       </header>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
@@ -169,7 +168,7 @@ export function CampaignDetail({ slug }: CampaignDetailProps) {
                     className="border-border bg-card flex flex-col gap-1 rounded-lg border p-4"
                   >
                     <p className="text-muted-foreground text-xs">
-                      {new Date(u.publishedAt).toLocaleDateString('es', {
+                      {new Date(u.createdAt).toLocaleDateString('es', {
                         day: 'numeric',
                         month: 'long',
                         year: 'numeric',
@@ -187,7 +186,7 @@ export function CampaignDetail({ slug }: CampaignDetailProps) {
             <h2 id="faq-heading" className="text-xl font-semibold">
               Preguntas frecuentes
             </h2>
-            {faqs.length === 0 ? (
+            {campaign.faqs.length === 0 ? (
               <EmptyState
                 icon={MessageCircleQuestion}
                 title="Aún no hay preguntas frecuentes"
@@ -195,9 +194,9 @@ export function CampaignDetail({ slug }: CampaignDetailProps) {
               />
             ) : (
               <dl className="flex flex-col gap-3">
-                {faqs.map((faq) => (
+                {campaign.faqs.map((faq, index) => (
                   <div
-                    key={faq.id}
+                    key={index}
                     className="border-border bg-card flex flex-col gap-1 rounded-lg border p-4"
                   >
                     <dt className="font-medium">{faq.question}</dt>
@@ -214,13 +213,13 @@ export function CampaignDetail({ slug }: CampaignDetailProps) {
         <aside className="flex flex-col gap-4 lg:sticky lg:top-20 lg:self-start">
           <div className="border-border bg-card flex flex-col gap-4 rounded-lg border p-4">
             <CampaignProgress
-              raised={campaign.raised}
-              goal={campaign.goal}
-              backersCount={campaign.backersCount}
+              raised={money(Math.round(campaign.totalPledged * 100))}
+              goal={money(Math.round(campaign.goalAmount * 100))}
+              backersCount={campaign.pledgeCount}
             />
-            <CountdownTimer endDate={campaign.endDate} status={campaign.status} />
+            <CountdownTimer endDate={campaign.deadline} status={campaign.status} />
             <Button
-              render={<Link href={`/campanas/${campaign.slug}/apoyar`} />}
+              render={<Link href={`/campanas/${campaign.id}/apoyar`} />}
               disabled={!canSupport}
               size="lg"
               className="w-full"
@@ -229,7 +228,7 @@ export function CampaignDetail({ slug }: CampaignDetailProps) {
               {canSupport ? 'Apoyar esta campaña' : 'Campaña no disponible'}
             </Button>
             <Link
-              href={`/campanas/${campaign.slug}/reportar`}
+              href={`/campanas/${campaign.id}/reportar`}
               className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 self-center text-xs"
             >
               <Flag className="size-3" />
@@ -237,14 +236,14 @@ export function CampaignDetail({ slug }: CampaignDetailProps) {
             </Link>
           </div>
 
-          {rewards.length > 0 && (
+          {campaign.rewards.length > 0 && (
             <section aria-labelledby="rewards-heading" className="flex flex-col gap-3">
               <h2 id="rewards-heading" className="text-sm font-semibold tracking-wide uppercase">
                 <Megaphone className="mr-1 inline size-3" />
                 Recompensas
               </h2>
               <div className="flex flex-col gap-3">
-                {rewards.map((reward) => (
+                {campaign.rewards.map((reward) => (
                   <RewardCard key={reward.id} reward={reward} />
                 ))}
               </div>
