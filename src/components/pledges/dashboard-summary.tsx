@@ -50,7 +50,7 @@ export function DashboardSummary() {
       const [allPledges, notifications, certificates, nearGoalAll] = await Promise.all([
         pledgesService.listByBacker(userId!, 1, 100),
         notificationsService.listForUser(userId!, { pageSize: 5 }),
-        certificatesService.listForBacker(userId!),
+        certificatesService.listMine(),
         campaignsService.getNearGoal(),
       ])
       const campaignIds = Array.from(new Set(allPledges.items.map((p) => p.campaignId)))

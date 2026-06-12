@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { FileText } from 'lucide-react'
-import type { Campaign, DonationCertificate } from '@/types'
-import { campaignsService, certificatesService } from '@/lib/api'
+import type { DonationCertificate } from '@/types'
+import { certificatesService } from '@/lib/api'
 import { useSession } from '@/components/providers/session-provider'
 import { Label } from '@/components/ui/label'
 import { EmptyState } from '@/components/common/empty-state'
@@ -14,16 +14,11 @@ import { CertificateItem } from './certificate-item'
 const SELECT_CLASS =
   'border-input bg-background h-8 rounded-lg border px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50'
 
-interface CertificatesData {
-  certificates: DonationCertificate[]
-  campaignsById: Map<string, Campaign>
-}
-
 export function CertificatesList() {
   const { session } = useSession()
   const userId = session?.user.id
 
-  const [data, setData] = useState<CertificatesData | null>(null)
+  const [certificates, setCertificates] = useState<DonationCertificate[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [yearFilter, setYearFilter] = useState<string>('')
@@ -34,18 +29,10 @@ export function CertificatesList() {
     let cancelled = false
 
     certificatesService
-      .listForBacker(userId)
-      .then(async (certs) => {
-        const ids = Array.from(new Set(certs.map((c) => c.campaignId)))
-        const campaigns = await Promise.all(
-          ids.map((id) => campaignsService.getById(id).catch(() => null))
-        )
+      .listMine()
+      .then((certs) => {
         if (cancelled) return
-        const campaignsById = new Map<string, Campaign>()
-        campaigns.forEach((c) => {
-          if (c) campaignsById.set(c.id, c)
-        })
-        setData({ certificates: certs, campaignsById })
+        setCertificates(certs)
         setError(false)
         setLoading(false)
       })
@@ -61,12 +48,11 @@ export function CertificatesList() {
   }, [userId, retryKey])
 
   const years = useMemo(() => {
-    if (!data) return []
-    return Array.from(new Set(data.certificates.map((c) => c.taxYear))).sort((a, b) => b - a)
-  }, [data])
+    if (!certificates) return []
+    return Array.from(new Set(certificates.map((c) => c.taxYear))).sort((a, b) => b - a)
+  }, [certificates])
 
-  const visible =
-    data?.certificates.filter((c) => !yearFilter || c.taxYear === Number(yearFilter)) ?? []
+  const visible = certificates?.filter((c) => !yearFilter || c.taxYear === Number(yearFilter)) ?? []
 
   return (
     <div className="flex flex-col gap-6">
@@ -100,18 +86,18 @@ export function CertificatesList() {
 
       {error ? (
         <ErrorState onRetry={() => setRetryKey((k) => k + 1)} />
-      ) : loading || !data ? (
+      ) : loading || !certificates ? (
         <RowsSkeleton count={4} />
       ) : visible.length === 0 ? (
         <EmptyState
           icon={FileText}
           title={
-            data.certificates.length === 0
+            certificates.length === 0
               ? 'Aún no tienes certificados'
               : 'Sin certificados para ese año'
           }
           description={
-            data.certificates.length === 0
+            certificates.length === 0
               ? 'Se emiten cuando una campaña que apoyaste alcanza su meta y completas el cobro.'
               : undefined
           }
@@ -119,11 +105,7 @@ export function CertificatesList() {
       ) : (
         <div className="flex flex-col gap-2">
           {visible.map((c) => (
-            <CertificateItem
-              key={c.id}
-              certificate={c}
-              campaign={data.campaignsById.get(c.campaignId) ?? null}
-            />
+            <CertificateItem key={c.id} certificate={c} />
           ))}
         </div>
       )}
