@@ -82,12 +82,16 @@ export function StepBasics({ fields, errors, categories, locations, onChange }: 
           )}
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="city">Ciudad</Label>
+          <Label htmlFor="city">
+            Ciudad <span className="text-destructive">*</span>
+          </Label>
           <Input
             id="city"
             value={fields.city}
             onChange={(e) => onChange({ city: e.target.value })}
+            aria-invalid={!!errors.city}
           />
+          {errors.city && <span className="text-destructive text-xs">{errors.city}</span>}
         </div>
       </div>
 

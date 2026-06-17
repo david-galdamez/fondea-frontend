@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Compass, HelpCircle, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -11,8 +11,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+import { useSession } from '@/components/providers/session-provider'
 import { Logo } from './logo'
 import { ThemeToggle } from './theme-toggle'
+import { UserMenu } from './user-menu'
 import { Category } from '@/lib/api/categories.service'
 
 interface PublicNavbarProps {
@@ -26,6 +28,13 @@ const NAV_ITEMS = [
 
 export function PublicNavbar({ categories = [] }: PublicNavbarProps) {
   const pathname = usePathname()
+  const router = useRouter()
+  const { user, isLoading, signOut } = useSession()
+
+  async function handleLogout() {
+    await signOut()
+    router.push('/auth/login')
+  }
 
   return (
     <header className="border-border bg-background/80 sticky top-0 z-40 w-full border-b backdrop-blur">
@@ -80,12 +89,18 @@ export function PublicNavbar({ categories = [] }: PublicNavbarProps) {
             Iniciar campaña
           </Button>
           <ThemeToggle />
-          <Button render={<Link href="/auth/login" />} variant="ghost" size="sm">
-            Iniciar sesión
-          </Button>
-          <Button render={<Link href="/auth/registro" />} size="sm">
-            Registrarse
-          </Button>
+          {isLoading ? null : user ? (
+            <UserMenu user={user} onLogout={handleLogout} />
+          ) : (
+            <>
+              <Button render={<Link href="/auth/login" />} variant="ghost" size="sm">
+                Iniciar sesión
+              </Button>
+              <Button render={<Link href="/auth/registro" />} size="sm">
+                Registrarse
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </header>

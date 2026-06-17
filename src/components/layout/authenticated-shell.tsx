@@ -9,7 +9,7 @@ import { useSession } from '@/components/providers/session-provider'
 import { AuthenticatedNavbar } from './authenticated-navbar'
 
 interface AuthenticatedShellProps {
-  requiredRole?: Role
+  requiredRole?: Role | Role[]
   sidebar?: React.ReactNode
   children: React.ReactNode
 }
@@ -18,20 +18,15 @@ export function AuthenticatedShell({ requiredRole, sidebar, children }: Authenti
   const { session, isLoading, signOut } = useSession()
   const router = useRouter()
   const pathname = usePathname()
-  const userId = session?.user.id
   const [unreadCount, setUnreadCount] = useState<number>(0)
   const [unreadKey, setUnreadKey] = useState(0)
 
-  useEffect(() => {
-    if (isLoading) return
-    if (!session) {
-      router.replace('/auth/login')
-      return
-    }
-    if (requiredRole && session.user.role === requiredRole) {
-      router.replace(getPrimaryPath(session.user))
-    }
-  }, [isLoading, session, requiredRole, router])
+  const allowedRoles = requiredRole
+    ? Array.isArray(requiredRole)
+      ? requiredRole
+      : [requiredRole]
+    : null
+  const roleAllowed = !allowedRoles || (!!session && allowedRoles.includes(session.user.role))
 
   useEffect(() => {
     let cancelled = false
@@ -58,10 +53,10 @@ export function AuthenticatedShell({ requiredRole, sidebar, children }: Authenti
       router.replace('/auth/confirmar')
       return
     }
-    if (requiredRole && session.user.role !== requiredRole) {
+    if (!roleAllowed) {
       router.replace(getPrimaryPath(session.user))
     }
-  }, [isLoading, session, requiredRole, router])
+  }, [isLoading, session, roleAllowed, router])
 
   async function handleLogout() {
     await signOut()
@@ -84,11 +79,12 @@ export function AuthenticatedShell({ requiredRole, sidebar, children }: Authenti
     )
   }
 
-  if (requiredRole && session.user.role !== requiredRole) {
+  if (!roleAllowed) {
     return (
       <div className="flex flex-1 items-center justify-center px-4 py-16" role="alert">
         <p className="text-muted-foreground text-sm">
-          Necesitas el rol de {ROLE_LABEL[requiredRole]} para acceder a esta área.
+          Necesitas el rol de {allowedRoles!.map((r) => ROLE_LABEL[r]).join(' o ')} para acceder a
+          esta área.
         </p>
       </div>
     )

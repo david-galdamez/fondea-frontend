@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { ArrowRight, Bell, HandHeart, ReceiptText, TrendingUp } from 'lucide-react'
+import { ArrowRight, Bell, Compass, HandHeart, ReceiptText, Sparkles, TrendingUp } from 'lucide-react'
 import type { MyPledgeDto } from '@/lib/api/pledges.service'
 import type { Notification } from '@/lib/api/notifications.service'
 import { certificatesService, notificationsService, pledgesService } from '@/lib/api'
@@ -121,6 +121,28 @@ export function DashboardSummary() {
           Aquí están las campañas que apoyas y tus notificaciones recientes.
         </p>
       </header>
+
+      <section
+        aria-label="Acciones rápidas"
+        className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div className="flex flex-col gap-1">
+          <h2 className="text-base font-semibold">¿Listo para participar?</h2>
+          <p className="text-muted-foreground text-sm">
+            Explora el catálogo de campañas activas para apoyar, o lanza la tuya.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button render={<Link href="/explorar" />} size="sm">
+            <Compass className="size-4" aria-hidden="true" />
+            Explorar campañas
+          </Button>
+          <Button render={<Link href="/creador/campanas/nueva" />} variant="outline" size="sm">
+            <Sparkles className="size-4" aria-hidden="true" />
+            Crear campaña
+          </Button>
+        </div>
+      </section>
 
       {data.nearGoal.length > 0 && <NearGoalAlert campaigns={data.nearGoal} />}
 
