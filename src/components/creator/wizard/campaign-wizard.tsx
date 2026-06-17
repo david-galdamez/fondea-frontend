@@ -117,6 +117,7 @@ export function CampaignWizard({ initial, initialStep = 1 }: CampaignWizardProps
       if (!fields.title.trim()) errs.title = 'Requerido'
       if (!fields.categoryId) errs.categoryId = 'Selecciona una categoría'
       if (!fields.locationId) errs.locationId = 'Selecciona el país'
+      if (!fields.city.trim()) errs.city = 'Requerido'
     }
     if (targetStep === 2) {
       if (dollarsToCents(fields.goalAmount) <= 0) errs.goalAmount = 'Debe ser mayor a cero'
@@ -146,7 +147,7 @@ export function CampaignWizard({ initial, initialStep = 1 }: CampaignWizardProps
       deadline: toDeadline(fields.durationDays),
       categoryId: fields.categoryId,
       locationId: fields.locationId,
-      city: fields.city,
+      city: fields.city.trim(),
     }
   }
 
