@@ -10,6 +10,7 @@ import type { RegisterCampaignRequest } from '@/lib/api/campaigns.service'
 import type { CreateRewardRequest } from '@/lib/api/rewards.service'
 import { MAX_CAMPAIGN_DURATION_DAYS, MIN_CAMPAIGN_DURATION_DAYS } from '@/lib/constants'
 import { dollarsToCents } from '@/lib/wizard-helpers'
+import { useSession } from '@/components/providers/session-provider'
 import { Button } from '@/components/ui/button'
 import { Stepper } from './stepper'
 import { computeCloseDate, StepGoal } from './step-goal'
@@ -73,6 +74,7 @@ function clampStep(value: number): number {
 
 export function CampaignWizard({ initial, initialStep = 1 }: CampaignWizardProps) {
   const router = useRouter()
+  const { refresh } = useSession()
   const [step, setStep] = useState<number>(clampStep(initialStep))
   const [campaignId, setCampaignId] = useState<string | null>(initial?.campaignId ?? null)
   const [fields, setFields] = useState<WizardFields>(initial?.fields ?? EMPTY_FIELDS)
@@ -160,6 +162,9 @@ export function CampaignWizard({ initial, initialStep = 1 }: CampaignWizardProps
       }
       const created = await campaignsService.create(body)
       setCampaignId(created.id)
+      // El backend promueve al patrocinador a creador en su primera campaña;
+      // refrescamos la sesión para reflejar el nuevo rol antes de navegar al panel.
+      await refresh()
       return created.id
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'No pudimos guardar el borrador'
