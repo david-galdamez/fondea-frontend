@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-import { Megaphone, Sparkles } from 'lucide-react'
+import { Download, Megaphone, Sheet, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { ApiError, adminService } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -36,6 +36,41 @@ export function AllCampaigns() {
   const [statusFilter, setStatusFilter] = useState<CampaignStatus | ''>('')
   const [featuredOnly, setFeaturedOnly] = useState(false)
   const [toggling, setToggling] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
+  const [exportingSheets, setExportingSheets] = useState(false)
+
+  async function handleExport() {
+    setExporting(true)
+    try {
+      await adminService.exportCampaignsCsv()
+      toast.success('Exportación generada')
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : 'No se pudo exportar las campañas'
+      toast.error(message)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  async function handleExportSheets() {
+    setExportingSheets(true)
+    try {
+      const { spreadsheetUrl } = await adminService.exportCampaignsToGoogleSheets()
+      toast.success('Exportación a Google Sheets en proceso', {
+        description: 'Las campañas aparecerán en la hoja en unos segundos.',
+        action: spreadsheetUrl
+          ? { label: 'Abrir hoja', onClick: () => window.open(spreadsheetUrl, '_blank') }
+          : undefined,
+      })
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : 'No se pudo exportar a Google Sheets'
+      toast.error(message)
+    } finally {
+      setExportingSheets(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -67,11 +102,23 @@ export function AllCampaigns() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-3xl font-semibold tracking-tight">Todas las campañas</h1>
-        <p className="text-muted-foreground text-sm">
-          Vista completa con filtros y acciones de moderación.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-semibold tracking-tight">Todas las campañas</h1>
+          <p className="text-muted-foreground text-sm">
+            Vista completa con filtros y acciones de moderación.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={handleExport} disabled={exporting}>
+            <Download className="size-4" />
+            {exporting ? 'Exportando…' : 'Exportar CSV'}
+          </Button>
+          <Button variant="outline" onClick={handleExportSheets} disabled={exportingSheets}>
+            <Sheet className="size-4" />
+            {exportingSheets ? 'Exportando…' : 'Exportar a Google Sheets'}
+          </Button>
+        </div>
       </header>
 
       <div className="flex flex-wrap items-end gap-3">

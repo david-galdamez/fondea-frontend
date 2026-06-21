@@ -30,21 +30,13 @@ const COLUMNS: FooterColumn[] = [
       { href: '/privacidad', label: 'Privacidad' },
     ],
   },
-  {
-    title: 'Recursos',
-    links: [
-      { href: '#', label: 'Feed RSS' },
-      { href: '#', label: 'Exportar CSV' },
-      { href: '#', label: 'Google Sheets' },
-    ],
-  },
 ]
 
 export function Footer() {
   return (
     <footer className="border-border border-t">
       <div className="mx-auto max-w-6xl px-4 py-10">
-        <div className="grid gap-8 md:grid-cols-[1.5fr_repeat(4,1fr)]">
+        <div className="grid gap-8 md:grid-cols-[1.5fr_repeat(3,1fr)]">
           <div className="flex flex-col gap-3">
             <Logo />
             <p className="text-muted-foreground max-w-xs text-sm">

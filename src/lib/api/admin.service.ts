@@ -1,4 +1,4 @@
-import { api } from '../client'
+import { api, downloadFile } from '../client'
 import type { CampaignStatus } from './campaigns.service'
 import type { WithdrawalStatus } from './withdrawals.service'
 import type { FraudReportStatus } from './fraud.service'
@@ -54,6 +54,14 @@ export interface FraudReportDto {
 export const adminService = {
   listAll() {
     return api.get<import('./campaigns.service').CampaignSummaryDto[]>('/api/admin/campaigns')
+  },
+
+  exportCampaignsCsv(): Promise<void> {
+    return downloadFile('/api/export/campaigns/csv', 'campaigns.csv')
+  },
+
+  exportCampaignsToGoogleSheets(): Promise<{ spreadsheetUrl: string }> {
+    return api.post<{ spreadsheetUrl: string }>('/api/export/campaigns/google-sheets', {})
   },
 
   getPendingCampaigns(): Promise<CampaignReviewDto[]> {

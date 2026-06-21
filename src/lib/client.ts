@@ -72,6 +72,45 @@ export async function apiClient<T>(path: string, options: RequestInit = {}): Pro
   return body.data
 }
 
+/**
+ * Descarga un archivo binario/texto del backend y dispara la descarga en el
+ * navegador. A diferencia de `apiClient`, no asume una respuesta JSON, por lo que
+ * sirve para endpoints de exportación (CSV, etc.).
+ */
+export async function downloadFile(path: string, fallbackFilename: string): Promise<void> {
+  const token = tokenStore.get()
+
+  let res: Response
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+  } catch {
+    throw new ApiError('No se pudo conectar con el servidor', 'network_error', 0)
+  }
+
+  if (!res.ok) {
+    const message = await res.text().catch(() => '')
+    if (res.status === 401) throw new UnauthorizedError(message || 'No autorizado')
+    if (res.status === 403) throw new ForbiddenError(message || 'Acceso denegado')
+    throw new ApiError('No se pudo generar el archivo', 'api_error', res.status)
+  }
+
+  const disposition = res.headers.get('Content-Disposition')
+  const match = disposition?.match(/filename="?([^"]+)"?/i)
+  const filename = match?.[1] ?? fallbackFilename
+
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(url)
+}
+
 export const api = {
   get: <T>(path: string) => apiClient<T>(path),
 
