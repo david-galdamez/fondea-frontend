@@ -60,6 +60,10 @@ export const adminService = {
     return downloadFile('/api/export/campaigns/csv', 'campaigns.csv')
   },
 
+  exportCampaignsToGoogleSheets(): Promise<{ spreadsheetUrl: string }> {
+    return api.post<{ spreadsheetUrl: string }>('/api/export/campaigns/google-sheets', {})
+  },
+
   getPendingCampaigns(): Promise<CampaignReviewDto[]> {
     return api.get<CampaignReviewDto[]>('/api/admin/campaigns/pending')
   },
