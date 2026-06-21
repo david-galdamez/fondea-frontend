@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-import { Megaphone, Sparkles } from 'lucide-react'
+import { Download, Megaphone, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { ApiError, adminService } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -36,6 +36,21 @@ export function AllCampaigns() {
   const [statusFilter, setStatusFilter] = useState<CampaignStatus | ''>('')
   const [featuredOnly, setFeaturedOnly] = useState(false)
   const [toggling, setToggling] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
+
+  async function handleExport() {
+    setExporting(true)
+    try {
+      await adminService.exportCampaignsCsv()
+      toast.success('Exportación generada')
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : 'No se pudo exportar las campañas'
+      toast.error(message)
+    } finally {
+      setExporting(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -67,11 +82,17 @@ export function AllCampaigns() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-3xl font-semibold tracking-tight">Todas las campañas</h1>
-        <p className="text-muted-foreground text-sm">
-          Vista completa con filtros y acciones de moderación.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-semibold tracking-tight">Todas las campañas</h1>
+          <p className="text-muted-foreground text-sm">
+            Vista completa con filtros y acciones de moderación.
+          </p>
+        </div>
+        <Button variant="outline" onClick={handleExport} disabled={exporting}>
+          <Download className="size-4" />
+          {exporting ? 'Exportando…' : 'Exportar CSV'}
+        </Button>
       </header>
 
       <div className="flex flex-wrap items-end gap-3">
