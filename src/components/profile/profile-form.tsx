@@ -81,8 +81,8 @@ function ProfileFormInner({ user }: InnerProps) {
     try {
       await usersService.updateProfile({
         name: form.name.trim(),
-        city: trimmedCity,
-        country: trimmedCountry,
+        city: trimmedCity || undefined,
+        country: trimmedCountry || undefined,
         bio: form.bio.trim() || undefined,
       })
       await refresh()
